@@ -17,12 +17,14 @@ limitations under the License.
 package main
 
 import (
-	"github.com/Shopify/sarama" // Sarama 1.22.0
+	"flag"
 	"log"
+
+	"github.com/Shopify/sarama" // Sarama 1.22.0
 )
 
 // broker address we need to communicate to
-const brokerAddress = "localhost:9092"
+const defaultBrokerAddress = "localhost:9092"
 
 func deleteTopic(brokerAddress string, topicName string) {
 	brokerAddrs := []string{brokerAddress}
@@ -57,9 +59,22 @@ func deleteTopic(brokerAddress string, topicName string) {
 }
 
 func main() {
-	deleteTopic(brokerAddress, "test_partitions_1")
-	deleteTopic(brokerAddress, "test_partitions_2")
-	deleteTopic(brokerAddress, "test_partitions_4")
-	deleteTopic(brokerAddress, "test_partitions_8")
-	deleteTopic(brokerAddress, "test_partitions_16")
+	var topicName string
+	var brokerAddress string
+
+	flag.StringVar(&topicName, "topic", "", "topic name")
+	flag.StringVar(&brokerAddress, "broker", defaultBrokerAddress, "broker address")
+	flag.Parse()
+
+	if topicName == "" {
+		log.Fatal("Topic name needs to be provided on CLI")
+	}
+
+	deleteTopic(brokerAddress, topicName)
+
+	// deleteTopic(brokerAddress, "test_partitions_1")
+	// deleteTopic(brokerAddress, "test_partitions_2")
+	// deleteTopic(brokerAddress, "test_partitions_4")
+	// deleteTopic(brokerAddress, "test_partitions_8")
+	// deleteTopic(brokerAddress, "test_partitions_16")
 }
