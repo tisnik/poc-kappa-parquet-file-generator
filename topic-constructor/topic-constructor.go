@@ -20,12 +20,14 @@ package main
 // for further Printfrmation
 
 import (
-	"github.com/Shopify/sarama" // Sarama 1.22.0
+	"flag"
 	"log"
+
+	"github.com/Shopify/sarama" // Sarama 1.22.0
 )
 
 // broker address we need to communicate to
-const brokerAddress = "localhost:9092"
+const defaultBrokerAddress = "localhost:9092"
 
 func createTopic(brokerAddress string, topicName string,
 	numPartitions int32, replicationFactor int32) {
@@ -65,9 +67,25 @@ func createTopic(brokerAddress string, topicName string,
 }
 
 func main() {
-	createTopic(brokerAddress, "test_partitions_1", 1, 1)
-	createTopic(brokerAddress, "test_partitions_2", 2, 1)
-	createTopic(brokerAddress, "test_partitions_4", 4, 1)
-	createTopic(brokerAddress, "test_partitions_8", 8, 1)
-	createTopic(brokerAddress, "test_partitions_16", 16, 1)
+	var topicName string
+	var brokerAddress string
+	var partitions int
+	var replicationFactor int
+
+	flag.StringVar(&topicName, "topic", "", "topic name")
+	flag.StringVar(&brokerAddress, "broker", defaultBrokerAddress, "broker address")
+	flag.IntVar(&partitions, "partitions", 1, "number of partitions")
+	flag.IntVar(&replicationFactor, "replication-factor", 1, "replication factor")
+	flag.Parse()
+
+	if topicName == "" {
+		log.Fatal("Topic name needs to be provided on CLI")
+	}
+
+	createTopic(brokerAddress, topicName, int32(partitions), int32(replicationFactor))
+	// createTopic(brokerAddress, "test_partitions_1", 1, 1)
+	// createTopic(brokerAddress, "test_partitions_2", 2, 1)
+	// createTopic(brokerAddress, "test_partitions_4", 4, 1)
+	// createTopic(brokerAddress, "test_partitions_8", 8, 1)
+	// createTopic(brokerAddress, "test_partitions_16", 16, 1)
 }
