@@ -4,6 +4,7 @@ Parquet file generator and pre-worker
 
 ## Tools available in this repository
 
+1. [Topic constructor](topic-constructor/README.md)
 1. [Topic cleaner](topic-cleaner/README.md)
 
 ## Notes
