@@ -1,4 +1,5 @@
-# poc-kappa-parquet-file-generator
+# PoC: Parquet file generator based on Kappa architecture
+
 Parquet file generator and pre-worker
 
 ## Tools available in this repository

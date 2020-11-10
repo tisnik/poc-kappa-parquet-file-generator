@@ -1,4 +1,4 @@
-# poc-kappa-parquet-file-generator
+# PoC: Parquet file generator based on Kappa architecture
 
 ## Topic cleaner
 

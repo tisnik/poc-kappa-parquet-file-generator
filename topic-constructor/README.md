@@ -1,3 +1,3 @@
 # PoC: Parquet file generator based on Kappa architecture
 
-## Message producer
+## Topic constructor
