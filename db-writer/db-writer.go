@@ -66,7 +66,7 @@ func startConsumer(brokerAddress string, topicName string, partition int) {
 	// Kafka consumer needs to be closed properly
 	defer func() {
 		// try to close Kafka consumer and check if the operation was
-		// succesful
+		// successful
 		if err := consumer.Close(); err != nil {
 			panic(err)
 		}
@@ -81,7 +81,7 @@ func startConsumer(brokerAddress string, topicName string, partition int) {
 	// partition consumer needs to be closed properly
 	defer func() {
 		// try to close Kafka partition consumer and check if the
-		// operation was succesful
+		// operation was successful
 		if err := partitionConsumer.Close(); err != nil {
 			panic(err)
 		}
