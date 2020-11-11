@@ -4,6 +4,17 @@
 
 Simple utility to clean (delete) selected topic.
 
+### Description
+
+This utility can be used to clean (i.e. delete) selected topic from Kafka
+broker. Broker address and topic name needs to be specified on command line.
+
+### How to build the tool
+
+```
+go build
+```
+
 ### Usage
 
 ```
