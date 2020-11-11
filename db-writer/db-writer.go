@@ -17,9 +17,13 @@ limitations under the License.
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
+
+	"database/sql"
+	_ "github.com/lib/pq" // PostgreSQL database driver
 
 	"github.com/Shopify/sarama"
 )
@@ -27,6 +31,15 @@ import (
 // defaultBrokerAddress represents address of broker running locally.
 // Usually we need to communicate with this broker.
 const defaultBrokerAddress = "localhost:9092"
+
+// default values for database connector
+const (
+	defaultDatabaseHostname = "localhost"
+	defaultDatabasePort     = 5432
+	defaultDatabaseName     = "d0"
+	defaultDatabaseUser     = "postgres"
+	defaultDatabasePassword = "postgres"
+)
 
 // Metadata represents nested data structure containing report metadata
 type Metadata struct {
@@ -56,7 +69,7 @@ func New(brokerAddress string) (sarama.Consumer, error) {
 
 // startConsumer function initializes the consumer and starts processing
 // messages
-func startConsumer(brokerAddress string, topicName string, partition int) {
+func startConsumer(storage *sql.DB, brokerAddress string, topicName string, partition int) {
 	// construct Kafka consumer
 	consumer, err := New(brokerAddress)
 	if err != nil {
@@ -64,13 +77,7 @@ func startConsumer(brokerAddress string, topicName string, partition int) {
 	}
 
 	// Kafka consumer needs to be closed properly
-	defer func() {
-		// try to close Kafka consumer and check if the operation was
-		// successful
-		if err := consumer.Close(); err != nil {
-			panic(err)
-		}
-	}()
+	defer closeConsumer(consumer)
 
 	// construct Kafka consumer for selected topic and partition
 	partitionConsumer, err := consumer.ConsumePartition(topicName, int32(partition), sarama.OffsetOldest)
@@ -79,29 +86,102 @@ func startConsumer(brokerAddress string, topicName string, partition int) {
 	}
 
 	// partition consumer needs to be closed properly
-	defer func() {
-		// try to close Kafka partition consumer and check if the
-		// operation was successful
-		if err := partitionConsumer.Close(); err != nil {
-			panic(err)
-		}
-	}()
+	defer closePartitionConsumer(partitionConsumer)
 
-	consumed := consumeMessages(partitionConsumer)
+	consumed, errors := consumeMessages(storage, partitionConsumer)
 
 	fmt.Printf("Consumed: %d\n", consumed)
+	fmt.Printf("Errors:   %d\n", errors)
+}
+
+// closeConsumer function tries to close Kafka consumer and checks if the
+// operation was successful
+func closeConsumer(consumer sarama.Consumer) {
+	err := consumer.Close()
+	if err != nil {
+		log.Fatal("closeConsumer", err)
+	}
+}
+
+// closePartitionConsumer function tries to close Kafka partition consumer and
+// check if the operation was successful
+func closePartitionConsumer(partitionConsumer sarama.PartitionConsumer) {
+	err := partitionConsumer.Close()
+	if err != nil {
+		log.Fatal("closePartitionConsumer", err)
+	}
 }
 
 // consumeMessages function consumes messages from Kafka and process them
 // accordingly
-func consumeMessages(partitionConsumer sarama.PartitionConsumer) int {
+func consumeMessages(storage *sql.DB, partitionConsumer sarama.PartitionConsumer) (int, int) {
 	consumed := 0
+	errors := 0
 	for {
 		msg := <-partitionConsumer.Messages()
-		fmt.Printf("Consumed message with key '%s' at offset %d\n", msg.Key, msg.Offset)
+		fmt.Printf("Consumed message with key '%s' at offset %d with length %d\n", msg.Key, msg.Offset, len(msg.Value))
+		err := writeMessageIntoDatabase(storage, msg)
+		if err != nil {
+			log.Println(err)
+			errors++
+		}
 		consumed++
 	}
-	return consumed
+	return consumed, errors
+}
+
+// writeMessageIntoDatabase function tries to write the message into database
+func writeMessageIntoDatabase(storage *sql.DB, message *sarama.ConsumerMessage) error {
+	var report Report
+
+	err := json.Unmarshal(message.Value, &report)
+	if err != nil {
+		fmt.Println("Message unmarshalling", err)
+		return err
+	}
+
+	// all info needed for insert
+	key := message.Key
+	clusterID := report.Metadata.ClusterID
+	orgID := report.Metadata.ExternalOrganization
+	path := report.Path
+	value := string(message.Value)
+
+	// prepare INSERT statement
+	insertStatement := `INSERT INTO reports(key, cluster_id, external_organization, path, report) values ($1, $2, $3, $4, $5)`
+
+	// run the INSERT statement
+	_, err = storage.Exec(insertStatement, key, clusterID, orgID, path, value)
+	if err != nil {
+		fmt.Println("Insert into DB", err)
+		return err
+	}
+
+	// everything's fine
+	return nil
+}
+
+// initStorage iniciates connection to DB storage.
+func initStorage(host string, port int, user string, password string, dbname string) (*sql.DB, error) {
+	// connection string
+	psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
+	log.Println("Connecting to database: " + psqlconn)
+
+	// open database
+	db, err := sql.Open("postgres", psqlconn)
+	if err != nil {
+		log.Fatal("Postgres driver initialization", err)
+	}
+	log.Println("Postgres driver initialization: OK")
+
+	// check the connection
+	err = db.Ping()
+	if err != nil {
+		log.Fatal("Ping to Postgres", err)
+	}
+	log.Println("Connection to database: OK")
+
+	return db, err
 }
 
 func main() {
@@ -113,10 +193,21 @@ func main() {
 	var brokerAddress string
 	var partition int
 
+	var databaseHost string
+	var databasePort int
+	var databaseUser string
+	var databasePassword string
+	var databaseName string
+
 	// find and parse all command line arguments
 	flag.StringVar(&topicName, "topic", noTopic, "topic name")
 	flag.StringVar(&brokerAddress, "broker", defaultBrokerAddress, "broker address")
 	flag.IntVar(&partition, "partition", noPartition, "partition to consume")
+	flag.StringVar(&databaseHost, "db-host", defaultDatabaseHostname, "database host name")
+	flag.IntVar(&databasePort, "db-port", defaultDatabasePort, "database port")
+	flag.StringVar(&databaseName, "db-name", defaultDatabaseName, "database name")
+	flag.StringVar(&databaseUser, "db-user", defaultDatabaseUser, "database user")
+	flag.StringVar(&databasePassword, "db-password", defaultDatabasePassword, "database password for given user")
 	flag.Parse()
 
 	// check if topic name has been specified on command line
@@ -129,5 +220,14 @@ func main() {
 		log.Fatal("Partition needs to be provided on CLI")
 	}
 
-	startConsumer(brokerAddress, topicName, partition)
+	storage, err := initStorage(databaseHost, databasePort, "postgres", "postgres", "d0")
+	if err != nil {
+		log.Fatal("Storage init", err)
+	}
+
+	// storage needs to be closed properly
+	defer storage.Close()
+
+	// start consuming messages and store them into opened storage
+	startConsumer(storage, brokerAddress, topicName, partition)
 }
