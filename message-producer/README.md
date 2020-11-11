@@ -18,3 +18,15 @@ written into Kafka. Message `value` contains the whole JSON.
 go build
 ```
 
+### Usage
+
+```
+Usage of message-producer:
+  -broker string
+        broker address (default "localhost:9092")
+  -input string
+        input data file
+  -topic string
+        topic name
+
+```
