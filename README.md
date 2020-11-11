@@ -6,6 +6,10 @@ Parquet file generator and pre-worker
 
 1. [Topic constructor](topic-constructor/README.md)
 1. [Topic cleaner](topic-cleaner/README.md)
+1. [DB writer](db-writer/README.md)
+1. [Parquet generator](parquet-generator/README.md)
+
+## Database configuration
 
 ## Notes
 
