@@ -28,11 +28,13 @@ import (
 // broker address we need to communicate to
 const brokerAddress = "localhost:9092"
 
+// Metadata represents nested data structure containing report metadata
 type Metadata struct {
 	ClusterID            string `json:"cluster_id"`
 	ExternalOrganization string `json:"external_organization"`
 }
 
+// Report represents the overall structure of report data (messages)
 type Report struct {
 	Path     string   `json:"path"`
 	Metadata Metadata `json:"metadata"`
