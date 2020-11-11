@@ -4,6 +4,19 @@
 
 Simple utility to create (construct) new topic.
 
+### Description
+
+This utility can be used to create new topic in Kafka broker. Broker address
+and topic name needs to be specified on command line. Additionally it is
+possible to specify number of partitions and replication factor for the new
+topic.
+
+### How to build the tool
+
+```
+go build
+```
+
 ### Usage
 
 ```
