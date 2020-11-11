@@ -17,7 +17,7 @@ limitations under the License.
 package main
 
 // see https://stackoverflow.com/questions/44094926/creating-kafka-topic-in-sarama
-// for further Printfrmation
+// for further information how to create Kafka topic from Go code
 
 import (
 	"flag"
@@ -26,63 +26,84 @@ import (
 	"github.com/Shopify/sarama" // Sarama 1.22.0
 )
 
-// broker address we need to communicate to
+// defaultBrokerAddress represents address of broker running locally.
+// Usually we need to communicate with this broker.
 const defaultBrokerAddress = "localhost:9092"
 
+// createTopic function creates new topic in Kafka with specified number of
+// partitions and replication factor
 func createTopic(brokerAddress string, topicName string,
 	numPartitions int32, replicationFactor int32) {
-	brokerAddrs := []string{brokerAddress}
+	brokerAddresses := []string{brokerAddress}
 
 	// configuration handling
+	// please note the versioning, it needs to be specified explicitly
 	config := sarama.NewConfig()
 	config.Version = sarama.V2_1_0_0
 
-	// try to create cluster admin object
-	clusterAdmin, err := sarama.NewClusterAdmin(brokerAddrs, config)
+	// try to create and initialize cluster admin object
+	// (it will reach out Kafka broker, so it checks the connection as well)
+	clusterAdmin, err := sarama.NewClusterAdmin(brokerAddresses, config)
+
+	// check if cluster admin has been initialized successfully
 	if err != nil {
 		log.Fatal("Error: create cluster admin: ", err.Error())
 	}
+
+	// everything's seems to be ok
 	log.Print("Cluster admin has been initialized")
 
 	// cluster admin needs to be closed properly
 	defer func() {
+		// try to close cluster admin
 		err := clusterAdmin.Close()
+
+		// check if cluster admin has been closed successfully
 		if err != nil {
 			log.Fatal("Error: close cluster admin: ", err.Error())
 		}
 	}()
 
-	// try to create a new topic
+	// try to create a new topic via cluster admin
 	err = clusterAdmin.CreateTopic(topicName,
 		&sarama.TopicDetail{
 			NumPartitions:     numPartitions,
 			ReplicationFactor: int16(replicationFactor),
 		}, false)
+
+	// check if topic has been created successfully
 	if err != nil {
 		log.Fatalf("Error: create topic '%s': %v", topicName, err.Error())
 	}
 
-	// everything's seems to be ok
+	// everything's seems to be ok -> topic has been created
 	log.Printf("Topic '%s' has been created", topicName)
 }
 
 func main() {
+	const noTopic = ""
+
+	// filled via command line arguments
 	var topicName string
 	var brokerAddress string
 	var partitions int
 	var replicationFactor int
 
-	flag.StringVar(&topicName, "topic", "", "topic name")
+	// find and parse all command line arguments
+	flag.StringVar(&topicName, "topic", noTopic, "topic name")
 	flag.StringVar(&brokerAddress, "broker", defaultBrokerAddress, "broker address")
 	flag.IntVar(&partitions, "partitions", 1, "number of partitions")
 	flag.IntVar(&replicationFactor, "replication-factor", 1, "replication factor")
 	flag.Parse()
 
-	if topicName == "" {
+	// check if topic name has been specified on command line
+	if topicName == noTopic {
 		log.Fatal("Topic name needs to be provided on CLI")
 	}
 
 	createTopic(brokerAddress, topicName, int32(partitions), int32(replicationFactor))
+
+	// Examples how to create new topics:
 	// createTopic(brokerAddress, "test_partitions_1", 1, 1)
 	// createTopic(brokerAddress, "test_partitions_2", 2, 1)
 	// createTopic(brokerAddress, "test_partitions_4", 4, 1)
