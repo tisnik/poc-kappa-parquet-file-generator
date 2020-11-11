@@ -19,14 +19,17 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"flag"
 	"fmt"
-	"github.com/Shopify/sarama" // Sarama 1.22.0
 	"log"
 	"os"
+
+	"github.com/Shopify/sarama" // Sarama 1.22.0
 )
 
-// broker address we need to communicate to
-const brokerAddress = "localhost:9092"
+// defaultBrokerAddress represents address of broker running locally.
+// Usually we need to communicate with this broker.
+const defaultBrokerAddress = "localhost:9092"
 
 // Metadata represents nested data structure containing report metadata
 type Metadata struct {
@@ -40,8 +43,11 @@ type Report struct {
 	Metadata Metadata `json:"metadata"`
 }
 
+// New constructor creates new instance of interface to Kafka broker
 func New(brokerAddress string) (sarama.SyncProducer, error) {
 	producer, err := sarama.NewSyncProducer([]string{brokerAddress}, nil)
+
+	// check if Kafka producer has been initialized properly
 	if err != nil {
 		log.Fatal("unable to create a new Kafka producer")
 		return nil, err
@@ -50,16 +56,24 @@ func New(brokerAddress string) (sarama.SyncProducer, error) {
 	return producer, nil
 }
 
+// produceMessage function produce (send) one message with specified key to
+// selected Kafka topic
 func produceMessage(producer sarama.SyncProducer, topic string, message string, key byte) (int32, int64, error) {
-	bytes := []byte(message)
+	// message key needs to be represented as raw bytes
 	keyBytes := []byte{key}
 
+	// message value needs to be represented as raw bytes
+	bytes := []byte(message)
+
+	// try to produce (end) the message into specified topic
 	producerMsg := &sarama.ProducerMessage{
 		Topic: topic,
 		Key:   sarama.ByteEncoder(keyBytes),
 		Value: sarama.ByteEncoder(bytes),
 	}
 
+	// check if send has been successful and get additional information
+	// where the message was stored
 	partition, offset, err := producer.SendMessage(producerMsg)
 	if err != nil {
 		log.Fatal("failed to produce message to Kafka")
@@ -69,6 +83,8 @@ func produceMessage(producer sarama.SyncProducer, topic string, message string, 
 	return partition, offset, err
 }
 
+// keyFromClusterID constructs a key (byte value 0x00-0x0f) from cluster ID.
+// Key is generated from the first character of cluster ID.
 func keyFromClusterID(clusterID string) byte {
 	key := clusterID[0]
 	if key >= '0' && key <= '9' {
@@ -81,6 +97,9 @@ func keyFromClusterID(clusterID string) byte {
 	return 0xff
 }
 
+// produceMessagesFromJSONs read provided input file line by line, parse JSON
+// values from each line, creates Kafka message and send the message to Kafka
+// broker into selected topic.
 func produceMessagesFromJSONs(producer sarama.SyncProducer, topic string, filename string) {
 	file, err := os.Open(filename)
 	if err != nil {
@@ -91,10 +110,12 @@ func produceMessagesFromJSONs(producer sarama.SyncProducer, topic string, filena
 	scanner := bufio.NewScanner(file)
 
 	// we need a buffer with larger capacity as lines are very long
+	// (larger that the default max capacity 64kB)
 	const maxCapacity = 512 * 1024
 	buffer := make([]byte, maxCapacity)
 	scanner.Buffer(buffer, maxCapacity)
 
+	// process the file line by line
 	for scanner.Scan() {
 		text := scanner.Text()
 		bytes := []byte(text)
@@ -104,6 +125,8 @@ func produceMessagesFromJSONs(producer sarama.SyncProducer, topic string, filena
 		if err != nil {
 			fmt.Println("err", err)
 		}
+
+		// generate message key from cluster ID
 		clusterID := report.Metadata.ClusterID
 		key := clusterID[0]
 
@@ -111,18 +134,45 @@ func produceMessagesFromJSONs(producer sarama.SyncProducer, topic string, filena
 		produceMessage(producer, topic, text, key)
 	}
 
+	// check if file processing was successful
 	if err := scanner.Err(); err != nil {
 		log.Fatal(err)
 	}
 }
 
 func main() {
+	const noTopic = ""
+	const noFile = ""
+
+	// filled via command line arguments
+	var topicName string
+	var brokerAddress string
+	var fileName string
+
+	// find and parse all command line arguments
+	flag.StringVar(&topicName, "topic", noTopic, "topic name")
+	flag.StringVar(&brokerAddress, "broker", defaultBrokerAddress, "broker address")
+	flag.StringVar(&fileName, "input", noFile, "input data file")
+	flag.Parse()
+
+	// check if topic name has been specified on command line
+	if topicName == noTopic {
+		log.Fatal("Topic name needs to be provided on CLI")
+	}
+
+	// check if topic name has been specified on command line
+	if fileName == noFile {
+		log.Fatal("Input file name needs to be provided on CLI")
+	}
+
+	// construct new interface to Kafka broker
 	producer, err := New(brokerAddress)
 	if err != nil {
 		log.Fatal("New producer", err)
 	}
-	log.Printf("Producer: %v\n", producer)
+	log.Printf("Producer has been initialized: %v\n", producer)
 	defer producer.Close()
 
-	produceMessagesFromJSONs(producer, "test_partitions_4", "../data/10.txt")
+	// and start producing messages to it
+	produceMessagesFromJSONs(producer, topicName, fileName)
 }
