@@ -41,7 +41,14 @@ message-producer/message-producer: message-producer/message-producer.go  ## Buil
 db-writer/db-writer: db-writer/db-writer.go  ## Build DB-writer tool
 	cd db-writer && go build db-writer.go
 
-build:	topic-cleaner/topic-cleaner topic-constructor/topic-constructor message-producer/message-producer db-writer/db-writer
+parquet-generator/parquet-generator: parquet-generator/parquet-generator.go  ## Build parquet-generator tool
+	cd parquet-generator && go build parquet-generator.go
+
+build:	topic-cleaner/topic-cleaner \
+	topic-constructor/topic-constructor \
+	message-producer/message-producer \
+	db-writer/db-writer \
+	parquet-generator/parquet-generator
 
 clean: ## Perform cleanup
 	rm topic-cleaner/topic-cleaner
