@@ -13,6 +13,8 @@ Parquet file generator and pre-worker
 
 ## Database configuration
 
+It is described in [this file](database/README.md).
+
 ## Notes
 
 ### Kafkacat basic usage in client mode
