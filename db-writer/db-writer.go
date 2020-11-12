@@ -14,6 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// This tool consumes messages from selected Kafka topic and partition. Such
+// messages are unmarshalled, parsed, and stored into PostgreSQL database. It
+// is possible to use command line flags to select the database, Kafka topic,
+// and Kafka partition.
+
 package main
 
 import (
@@ -140,7 +145,7 @@ func writeMessageIntoDatabase(storage *sql.DB, message *sarama.ConsumerMessage) 
 		return err
 	}
 
-	// all info needed for insert
+	// all info needed for insert new record into database
 	key := message.Key
 	clusterID := report.Metadata.ClusterID
 	orgID := report.Metadata.ExternalOrganization
