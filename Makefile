@@ -44,17 +44,23 @@ db-writer/db-writer: db-writer/db-writer.go  ## Build DB-writer tool
 parquet-generator/parquet-generator: parquet-generator/parquet-generator.go  ## Build parquet-generator tool
 	cd parquet-generator && go build parquet-generator.go
 
+parquet-reader/parquet-reader: parquet-reader/parquet-reader.go  ## Build parquet-reader tool
+	cd parquet-reader && go build parquet-reader.go
+
 build:	topic-cleaner/topic-cleaner \
 	topic-constructor/topic-constructor \
 	message-producer/message-producer \
 	db-writer/db-writer \
-	parquet-generator/parquet-generator
+	parquet-generator/parquet-generator \
+	parquet-reader/parquet-reader
 
 clean: ## Perform cleanup
 	rm topic-cleaner/topic-cleaner
 	rm topic-constructor/topic-constructor
 	rm message-producer/message-producer
 	rm db-writer/db-writer
+	rm parquet-generator/parquet-generator
+	rm parquet-reader/parquet-reader
 
 help: ## Show this help screen
 	@echo 'Usage: make <OPTIONS> ... <TARGETS>'
