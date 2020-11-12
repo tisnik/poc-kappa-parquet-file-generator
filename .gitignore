@@ -129,3 +129,10 @@ dmypy.json
 .pyre/
 
 *.tgz
+
+# Executable files
+topic-constructor/topic-constructor
+topic-cleaner/topic-cleaner
+message-producer/message-producer
+db-writer/db-writer
+parquet-generator/parquet-generator
