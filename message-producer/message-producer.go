@@ -14,6 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// This utility reads and parses the input file that should contains message
+// contents split by newline character. Each message is represented as JSON (ie
+// the input file consists of several JSONs, one JSON per line). This JSON is
+// de-serialized and cluster ID is used to choose the `key` for message to be
+// written into Kafka. Message `value` contains the whole JSON.
+
 package main
 
 import (
