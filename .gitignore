@@ -136,3 +136,6 @@ topic-cleaner/topic-cleaner
 message-producer/message-producer
 db-writer/db-writer
 parquet-generator/parquet-generator
+
+# Parquet files
+*.parquet
