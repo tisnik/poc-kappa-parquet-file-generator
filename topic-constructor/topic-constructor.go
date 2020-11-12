@@ -14,6 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// This utility can be used to create new topic in Kafka broker. Broker address
+// and topic name needs to be specified on command line. Additionally it is
+// possible to specify number of partitions and replication factor for the new
+// topic.
+
 package main
 
 // see https://stackoverflow.com/questions/44094926/creating-kafka-topic-in-sarama
