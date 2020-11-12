@@ -20,9 +20,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/xitongsys/parquet-go-source/local"
 	"github.com/xitongsys/parquet-go/parquet"
-	"github.com/xitongsys/parquet-go/reader"
 	"github.com/xitongsys/parquet-go/writer"
 )
 
@@ -71,33 +69,4 @@ func main() {
 	}
 	log.Println("Write Finished")
 	w.Close()
-
-	///read
-	fr, err := local.NewLocalFileReader("flat.parquet")
-	if err != nil {
-		log.Println("Can't open file")
-		return
-	}
-
-	pr, err := reader.NewParquetReader(fr, new(Report), 4)
-	if err != nil {
-		log.Println("Can't create parquet reader", err)
-		return
-	}
-	num = int(pr.GetNumRows())
-	for i := 0; i < num/10; i++ {
-		if i%2 == 0 {
-			pr.SkipRows(10) //skip 10 rows
-			continue
-		}
-		report := make([]Report, 10) //read 10 rows
-		if err = pr.Read(&report); err != nil {
-			log.Println("Read error", err)
-		}
-		log.Println(report)
-	}
-
-	pr.ReadStop()
-	fr.Close()
-
 }
