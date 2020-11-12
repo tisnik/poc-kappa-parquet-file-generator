@@ -14,6 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// This utility can be used to clean (i.e. delete) selected topic from Kafka
+// broker. Broker address and topic name needs to be specified on command line.
+
 package main
 
 import (
