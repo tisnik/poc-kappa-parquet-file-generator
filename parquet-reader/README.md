@@ -7,6 +7,10 @@ standard output.
 
 ### Description
 
+This tool is able to read all records stored in selected Parquet file.
+Currently, only records with the structure `Report` is read correctly. Name of
+input Parquet file needs to be selected from command line.
+
 ### How to build the tool
 
 ```
@@ -15,6 +19,12 @@ go build
 
 ### Usage
 
+```
+Usage of parquet-reader:
+  -input string
+        input data file
+
+```
 
 ### Parquet file structure
 
