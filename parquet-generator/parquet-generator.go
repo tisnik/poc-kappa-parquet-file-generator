@@ -17,11 +17,24 @@ limitations under the License.
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
+	"database/sql"
+	_ "github.com/lib/pq" // PostgreSQL database driver
+
 	"github.com/xitongsys/parquet-go/parquet"
 	"github.com/xitongsys/parquet-go/writer"
+)
+
+// default values for database connector
+const (
+	defaultDatabaseHostname = "localhost"
+	defaultDatabasePort     = 5432
+	defaultDatabaseName     = "d0"
+	defaultDatabaseUser     = "postgres"
+	defaultDatabasePassword = "postgres"
 )
 
 // Report represents one record stored in Parquet file
@@ -32,6 +45,66 @@ type Report struct {
 	Path                 string `parquet:"name=path, type=UTF8, encoding=PLAIN"`
 	ExternalOrganization string `parquet:"name=external_organization, type=UTF8, encoding=PLAIN"`
 	Report               string `parquet:"name=report, type=UTF8, encoding=PLAIN"`
+}
+
+// initStorage iniciates connection to DB storage.
+func initStorage(host string, port int, user string, password string, dbname string) (*sql.DB, error) {
+	// connection string
+	psqlconn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
+	log.Println("Connecting to database: " + psqlconn)
+
+	// open database
+	db, err := sql.Open("postgres", psqlconn)
+	if err != nil {
+		log.Fatal("Postgres driver initialization", err)
+	}
+	log.Println("Postgres driver initialization: OK")
+
+	// check the connection
+	err = db.Ping()
+	if err != nil {
+		log.Fatal("Ping to Postgres", err)
+	}
+	log.Println("Connection to database: OK")
+
+	return db, err
+}
+
+func readAndDisplayAllRecords(storage *sql.DB) {
+	const query = "SELECT id, key, cluster_id, path, external_organization, report FROM reports ORDER BY id"
+
+	// try to select all records
+	rows, err := storage.Query(query)
+	if err != nil {
+		log.Fatal("storage.Query", err)
+	}
+	defer rows.Close()
+
+	// process all records, one by one
+	for rows.Next() {
+		var id int
+		var key string
+		var cluster_id string
+		var path string
+		var external_organization string
+		var report string
+
+		// try to read one record from database
+		err = rows.Scan(&id, &key, &cluster_id, &path, &external_organization, &report)
+
+		// skip errors
+		if err != nil {
+			log.Println("reading/scanning record", err)
+			continue
+		}
+		fmt.Println()
+	}
+
+	// get any error encountered during iteration
+	err = rows.Err()
+	if err != nil {
+		log.Fatal("process record(s)", err)
+	}
 }
 
 func main() {
