@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -36,6 +37,8 @@ const (
 	defaultDatabaseUser     = "postgres"
 	defaultDatabasePassword = "postgres"
 )
+
+const defaultOutputFile = "flat.parquet"
 
 // Report represents one record stored in Parquet file
 type Report struct {
@@ -70,8 +73,16 @@ func initStorage(host string, port int, user string, password string, dbname str
 	return db, err
 }
 
-func readAndDisplayAllRecords(storage *sql.DB) {
+// readAndExportAllRecords function read all reports from SQL database and
+// write them into Parquet file.
+func readAndExportAllRecords(storage *sql.DB, pw *writer.ParquetWriter) {
 	const query = "SELECT id, key, cluster_id, path, external_organization, report FROM reports ORDER BY id"
+
+	// some statistic about processing
+	readRecords := 0
+	readErrors := 0
+	writtenRecords := 0
+	writeErrors := 0
 
 	// try to select all records
 	rows, err := storage.Query(query)
@@ -95,26 +106,89 @@ func readAndDisplayAllRecords(storage *sql.DB) {
 		// skip errors
 		if err != nil {
 			log.Println("reading/scanning record", err)
+			readErrors++
 			continue
 		}
-		fmt.Println()
+
+		readRecords++
+
+		// create report structure to be stored in Parquet file
+		reportRecord := Report{
+			Id:                   int64(id),
+			Key:                  key,
+			ClusterID:            cluster_id,
+			Path:                 path,
+			ExternalOrganization: external_organization,
+			Report:               report,
+		}
+
+		// write the record structure into Parquet file
+		err := pw.Write(reportRecord)
+		if err != nil {
+			log.Println("Write into Parquet error", err)
+			writeErrors++
+			continue
+		}
+		writtenRecords++
 	}
+
+	fmt.Println("read records:    ", readRecords)
+	fmt.Println("read errors:     ", readErrors)
+	fmt.Println("written records: ", writtenRecords)
+	fmt.Println("write errors:    ", writeErrors)
 
 	// get any error encountered during iteration
 	err = rows.Err()
 	if err != nil {
 		log.Fatal("process record(s)", err)
 	}
+
+}
+
+// stopWrite function stop writing into Parquet file
+func stopWrite(pw *writer.ParquetWriter) {
+	err := pw.WriteStop()
+	if err != nil {
+		log.Println("WriteStop error", err)
+	}
 }
 
 func main() {
-	var err error
+	// filled via command line arguments
+	var databaseHost string
+	var databasePort int
+	var databaseUser string
+	var databasePassword string
+	var databaseName string
+
+	var outputFile string
+
+	// find and parse all command line arguments
+	flag.StringVar(&databaseHost, "db-host", defaultDatabaseHostname, "database host name")
+	flag.IntVar(&databasePort, "db-port", defaultDatabasePort, "database port")
+	flag.StringVar(&databaseName, "db-name", defaultDatabaseName, "database name")
+	flag.StringVar(&databaseUser, "db-user", defaultDatabaseUser, "database user")
+	flag.StringVar(&databasePassword, "db-password", defaultDatabasePassword, "database password for given user")
+	flag.StringVar(&outputFile, "output", defaultOutputFile, "output file (Parquet)")
+
+	// try to initialize the storage
+	storage, err := initStorage(databaseHost, databasePort, databaseUser, databasePassword, databaseName)
+	if err != nil {
+		log.Fatal("Storage init", err)
+	}
+
+	// storage needs to be closed properly
+	defer storage.Close()
+
 	w, err := os.Create("flat.parquet")
 	if err != nil {
 		log.Println("Can't create local file", err)
 		return
 	}
 
+	defer w.Close()
+
+	// initialize Parquet file writer
 	pw, err := writer.NewParquetWriterFromWriter(w, new(Report), 4)
 	if err != nil {
 		log.Println("Can't create parquet writer", err)
@@ -123,24 +197,10 @@ func main() {
 
 	pw.RowGroupSize = 128 * 1024 * 1024 //128M
 	pw.CompressionType = parquet.CompressionCodec_SNAPPY
-	num := 100
-	for i := 0; i < num; i++ {
-		stu := Report{
-			Id:                   int64(i),
-			Key:                  "a",
-			ClusterID:            "StudentName",
-			Path:                 "Path",
-			ExternalOrganization: "eorg",
-			Report:               "report",
-		}
-		if err = pw.Write(stu); err != nil {
-			log.Println("Write error", err)
-		}
-	}
-	if err = pw.WriteStop(); err != nil {
-		log.Println("WriteStop error", err)
-		return
-	}
+
+	defer stopWrite(pw)
+
+	readAndExportAllRecords(storage, pw)
+
 	log.Println("Write Finished")
-	w.Close()
 }
