@@ -225,6 +225,7 @@ func main() {
 		log.Fatal("Partition needs to be provided on CLI")
 	}
 
+	// try to initialize the storage
 	storage, err := initStorage(databaseHost, databasePort, "postgres", "postgres", "d0")
 	if err != nil {
 		log.Fatal("Storage init", err)
