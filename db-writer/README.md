@@ -21,7 +21,7 @@ go build
 ### Usage
 
 ```
-Usage of /tmp/ramdisk/go-build323414172/b001/exe/db-writer:
+Usage of db-writer:
   -broker string
         broker address (default "localhost:9092")
   -db-host string

@@ -24,6 +24,7 @@ import (
 	"github.com/xitongsys/parquet-go/writer"
 )
 
+// Report represents one record stored in Parquet file
 type Report struct {
 	Id                   int64  `parquet:"name=id, type=INT64"`
 	Key                  string `parquet:"name=key, type=UTF8, encoding=PLAIN_DICTIONARY"`
