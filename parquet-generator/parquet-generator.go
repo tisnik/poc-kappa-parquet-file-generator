@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"database/sql"
 	_ "github.com/lib/pq" // PostgreSQL database driver
@@ -176,6 +177,8 @@ func main() {
 	flag.StringVar(&outputFile, "output", defaultOutputFile, "output file (Parquet)")
 	flag.Parse()
 
+	t1 := time.Now()
+
 	// try to initialize the storage
 	storage, err := initStorage(databaseHost, databasePort, databaseUser, databasePassword, databaseName)
 	if err != nil {
@@ -208,4 +211,11 @@ func main() {
 	readAndExportAllRecords(storage, pw)
 
 	log.Println("Write Finished")
+
+	// compute and print duration
+	t2 := time.Now()
+	since := time.Since(t1)
+	log.Println("Start time: ", t1)
+	log.Println("End time:   ", t2)
+	log.Println("Duration:   ", since)
 }
