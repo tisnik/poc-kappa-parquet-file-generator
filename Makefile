@@ -38,6 +38,9 @@ topic-constructor/topic-constructor: topic-constructor/topic-constructor.go  ## 
 message-producer/message-producer: message-producer/message-producer.go  ## Build message producer tool
 	cd message-producer && go build message-producer.go
 
+db-reader/db-reader: db-reader/db-reader.go  ## Build DB-reader tool
+	cd db-reader && go build db-reader.go
+
 db-writer/db-writer: db-writer/db-writer.go  ## Build DB-writer tool
 	cd db-writer && go build db-writer.go
 
@@ -50,6 +53,7 @@ parquet-reader/parquet-reader: parquet-reader/parquet-reader.go  ## Build parque
 build:	topic-cleaner/topic-cleaner \
 	topic-constructor/topic-constructor \
 	message-producer/message-producer \
+	db-reader/db-reader \
 	db-writer/db-writer \
 	parquet-generator/parquet-generator \
 	parquet-reader/parquet-reader
@@ -58,6 +62,7 @@ clean: ## Perform cleanup
 	rm topic-cleaner/topic-cleaner
 	rm topic-constructor/topic-constructor
 	rm message-producer/message-producer
+	rm db-reader/db-reader
 	rm db-writer/db-writer
 	rm parquet-generator/parquet-generator
 	rm parquet-reader/parquet-reader
