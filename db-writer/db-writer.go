@@ -226,7 +226,7 @@ func main() {
 	}
 
 	// try to initialize the storage
-	storage, err := initStorage(databaseHost, databasePort, "postgres", "postgres", "d0")
+	storage, err := initStorage(databaseHost, databasePort, databaseUser, databasePassword, databaseName)
 	if err != nil {
 		log.Fatal("Storage init", err)
 	}
