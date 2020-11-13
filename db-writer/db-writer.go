@@ -26,6 +26,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"time"
 
 	"database/sql"
 	_ "github.com/lib/pq" // PostgreSQL database driver
@@ -120,17 +121,26 @@ func closePartitionConsumer(partitionConsumer sarama.PartitionConsumer) {
 // consumeMessages function consumes messages from Kafka and process them
 // accordingly
 func consumeMessages(storage *sql.DB, partitionConsumer sarama.PartitionConsumer) (int, int) {
+	t1 := time.Now()
 	consumed := 0
 	errors := 0
+
 	for {
 		msg := <-partitionConsumer.Messages()
-		fmt.Printf("Consumed message with key '%s' at offset %d with length %d\n", msg.Key, msg.Offset, len(msg.Value))
+		// fmt.Printf("Consumed message with key '%s' at offset %d with length %d\n", msg.Key, msg.Offset, len(msg.Value))
 		err := writeMessageIntoDatabase(storage, msg)
 		if err != nil {
 			log.Println(err)
 			errors++
 		}
 		consumed++
+
+		// compute and print duration
+		// t2 := time.Now()
+		since := time.Since(t1)
+		// log.Println("Start time: ", t1)
+		// log.Println("End time:   ", t2)
+		log.Printf("Consumed: %d  Offset: %d  Duration: %v", consumed, msg.Offset, since)
 	}
 	return consumed, errors
 }
