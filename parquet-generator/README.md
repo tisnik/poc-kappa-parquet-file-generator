@@ -6,6 +6,11 @@ Tool to read reports from database and create Parquet files from those reports.
 
 ### Description
 
+This tool reads all records from provided SQL database and writes all the
+records into Parquet file. It is possible to use command line flags to select
+the database and its options (user, etc.). Additionally it is possible to
+choose the output file.
+
 ### How to build the tool
 
 ```
@@ -13,6 +18,22 @@ go build
 ```
 
 ### Usage
+
+```
+Usage of parquet-generator:
+  -db-host string
+        database host name (default "localhost")
+  -db-name string
+        database name (default "d0")
+  -db-password string
+        database password for given user (default "postgres")
+  -db-port int
+        database port (default 5432)
+  -db-user string
+        database user (default "postgres")
+  -output string
+        output file (Parquet) (default "flat.parquet")
+```
 
 ### Parquet file structure
 

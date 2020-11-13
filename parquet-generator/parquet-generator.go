@@ -14,6 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// This tool reads all records from provided SQL database and writes all the
+// records into Parquet file. It is possible to use command line flags to
+// select the database and its options (user, etc.). Additionally it is
+// possible to choose the output file.
 package main
 
 import (
@@ -170,6 +174,7 @@ func main() {
 	flag.StringVar(&databaseUser, "db-user", defaultDatabaseUser, "database user")
 	flag.StringVar(&databasePassword, "db-password", defaultDatabasePassword, "database password for given user")
 	flag.StringVar(&outputFile, "output", defaultOutputFile, "output file (Parquet)")
+	flag.Parse()
 
 	// try to initialize the storage
 	storage, err := initStorage(databaseHost, databasePort, databaseUser, databasePassword, databaseName)
