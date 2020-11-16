@@ -11,6 +11,8 @@ Parquet file generator and pre-worker
 1. [DB writer](db-writer/README.md)
 1. [DB reader](db-reader/README.md)
 1. [Parquet generator](parquet-generator/README.md)
+1. [Parquet read performance (benchmark)](parquet-read-performance/README.md)
+1. [Parquet write performance (benchmark)](parquet-write-performance/writeME.md)
 
 ## Database configuration
 
