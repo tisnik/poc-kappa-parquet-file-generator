@@ -102,11 +102,11 @@ func readAndExportAllRecords(storage *sql.DB, pw *writer.ParquetWriter) {
 		var key string
 		var clusterID string
 		var path string
-		var external_organization string
+		var externalOrganization string
 		var report string
 
 		// try to read one record from database
-		err = rows.Scan(&id, &key, &clusterID, &path, &external_organization, &report)
+		err = rows.Scan(&id, &key, &clusterID, &path, &externalOrganization, &report)
 
 		// skip errors
 		if err != nil {
@@ -123,7 +123,7 @@ func readAndExportAllRecords(storage *sql.DB, pw *writer.ParquetWriter) {
 			Key:                  key,
 			ClusterID:            clusterID,
 			Path:                 path,
-			ExternalOrganization: external_organization,
+			ExternalOrganization: externalOrganization,
 			Report:               report,
 		}
 
