@@ -50,13 +50,21 @@ parquet-generator/parquet-generator: parquet-generator/parquet-generator.go  ## 
 parquet-reader/parquet-reader: parquet-reader/parquet-reader.go  ## Build parquet-reader tool
 	cd parquet-reader && go build parquet-reader.go
 
+parquet-read-performance/read-performance: parquet-read-performance/read-performance.go  ## Build parquet-read-performance benchmark
+	cd parquet-read-performance && go build read-performance.go
+
+parquet-write-performance/write-performance: parquet-write-performance/write-performance.go  ## Build parquet-write-performance benchmark
+	cd parquet-write-performance && go build write-performance.go
+
 build:	topic-cleaner/topic-cleaner \
 	topic-constructor/topic-constructor \
 	message-producer/message-producer \
 	db-reader/db-reader \
 	db-writer/db-writer \
 	parquet-generator/parquet-generator \
-	parquet-reader/parquet-reader
+	parquet-reader/parquet-reader \
+	parquet-read-performance/read-performance \
+	parquet-write-performance/write-performance
 
 clean: ## Perform cleanup
 	rm topic-cleaner/topic-cleaner
@@ -66,6 +74,8 @@ clean: ## Perform cleanup
 	rm db-writer/db-writer
 	rm parquet-generator/parquet-generator
 	rm parquet-reader/parquet-reader
+	rm parquet-read-performance/read-performance
+	rm parquet-write-performance/write-performance
 
 fmt: ## Run Go formatter over all source files
 	gofmt -d db-reader/*.go
@@ -75,6 +85,8 @@ fmt: ## Run Go formatter over all source files
 	gofmt -d message-producer/*.go
 	gofmt -d parquet-generator/*.go
 	gofmt -d parquet-reader/*.go
+	gofmt -d parquet-read-performance/*.go
+	gofmt -d parquet-write-performance/*.go
 
 linter: ## Run Go linter over all source files
 	golint db-reader/...
@@ -84,6 +96,8 @@ linter: ## Run Go linter over all source files
 	golint message-producer/...
 	golint parquet-generator/...
 	golint parquet-reader/...
+	golint parquet-read-performance/...
+	golint parquet-write-performance/...
 
 errcheck: ## Run Go error checker over all source files
 	pushd db-reader; errcheck ./...; popd
@@ -93,6 +107,8 @@ errcheck: ## Run Go error checker over all source files
 	pushd message-producer; errcheck ./...; popd
 	pushd parquet-generator; errcheck ./...; popd
 	pushd parquet-reader; errcheck ./...; popd
+	pushd parquet-read-performance; errcheck ./...; popd
+	pushd parquet-write-performance; errcheck ./...; popd
 
 help: ## Show this help screen
 	@echo 'Usage: make <OPTIONS> ... <TARGETS>'
