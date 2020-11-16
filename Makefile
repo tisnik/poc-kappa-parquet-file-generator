@@ -67,6 +67,33 @@ clean: ## Perform cleanup
 	rm parquet-generator/parquet-generator
 	rm parquet-reader/parquet-reader
 
+fmt: ## Run Go formatter over all source files
+	gofmt -d db-reader/*.go
+	gofmt -d db-writer/*.go
+	gofmt -d topic-constructor/*.go
+	gofmt -d topic-cleaner/*.go
+	gofmt -d message-producer/*.go
+	gofmt -d parquet-generator/*.go
+	gofmt -d parquet-reader/*.go
+
+linter: ## Run Go linter over all source files
+	golint db-reader/...
+	golint db-writer/...
+	golint topic-constructor/...
+	golint topic-cleaner/...
+	golint message-producer/...
+	golint parquet-generator/...
+	golint parquet-reader/...
+
+errcheck: ## Run Go error checker over all source files
+	pushd db-reader; errcheck ./...; popd
+	pushd db-writer; errcheck ./...; popd
+	pushd topic-constructor; errcheck ./...; popd
+	pushd topic-cleaner; errcheck ./...; popd
+	pushd message-producer; errcheck ./...; popd
+	pushd parquet-generator; errcheck ./...; popd
+	pushd parquet-reader; errcheck ./...; popd
+
 help: ## Show this help screen
 	@echo 'Usage: make <OPTIONS> ... <TARGETS>'
 	@echo ''
