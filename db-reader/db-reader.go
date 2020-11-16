@@ -82,11 +82,11 @@ func readAndDisplayAllRecords(storage *sql.DB, showID bool, showKey bool,
 		var key string
 		var cluster_id string
 		var path string
-		var external_organization string
+		var externalOrganization string
 		var report string
 
 		// try to read one record from database
-		err = rows.Scan(&id, &key, &cluster_id, &path, &external_organization, &report)
+		err = rows.Scan(&id, &key, &cluster_id, &path, &externalOrganization, &report)
 
 		// skip errors
 		if err != nil {
@@ -108,7 +108,7 @@ func readAndDisplayAllRecords(storage *sql.DB, showID bool, showKey bool,
 			fmt.Print(path, "\t")
 		}
 		if showExternalOrganization {
-			fmt.Print(external_organization, "\t")
+			fmt.Print(externalOrganization, "\t")
 		}
 		if showReport {
 			fmt.Print(report)
