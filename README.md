@@ -14,6 +14,32 @@ Parquet file generator and pre-worker
 1. [Parquet read performance (benchmark)](parquet-read-performance/README.md)
 1. [Parquet write performance (benchmark)](parquet-write-performance/README.md)
 
+## Makefile
+
+```
+Usage: make <OPTIONS> ... <TARGETS>
+
+Available targets are:
+
+create-db                            Create database and initialize table(s)
+drop-db                              Drop database completely
+topic-cleaner/topic-cleaner          Build topic-cleaner tool
+topic-constructor/topic-constructor  Build topic-constructor tool
+message-producer/message-producer    Build message producer tool
+db-reader/db-reader                  Build DB-reader tool
+db-writer/db-writer                  Build DB-writer tool
+parquet-generator/parquet-generator  Build parquet-generator tool
+parquet-reader/parquet-reader        Build parquet-reader tool
+parquet-read-performance/read-performance Build parquet-read-performance benchmark
+parquet-write-performance/write-performance Build parquet-write-performance benchmark
+clean                                Perform cleanup
+fmt                                  Run Go formatter over all source files
+linter                               Run Go linter over all source files
+errcheck                             Run Go error checker over all source files
+help                                 Show this help screen
+
+```
+
 ## Database configuration
 
 It is described in [this file](database/README.md).
