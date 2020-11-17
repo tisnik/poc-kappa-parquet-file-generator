@@ -3,7 +3,7 @@
 ## DB writer
 
 Tool to consume messages from Kafka topic and store them in relational
-database, PostgreSQL in the default variant.
+database, PostgreSQL is the default relational database variant.
 
 ### Description
 
