@@ -38,8 +38,9 @@ clean                                Perform cleanup
 fmt                                  Run Go formatter over all source files
 linter                               Run Go linter over all source files
 errcheck                             Run Go error checker over all source files
+vet                                  Run go vet. Report likely mistakes in source code
+gocyclo                              Run gocyclo
 help                                 Show this help screen
-
 ```
 
 ## Database configuration
