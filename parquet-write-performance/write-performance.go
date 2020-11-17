@@ -31,7 +31,7 @@ import (
 
 // Report represents one record stored in Parquet file
 type Report struct {
-	Id                   int64  `parquet:"name=id, type=INT64"`
+	ID                   int64  `parquet:"name=id, type=INT64"`
 	Key                  string `parquet:"name=key, type=UTF8, encoding=PLAIN_DICTIONARY"`
 	ClusterID            string `parquet:"name=cluster_id, type=UTF8, encoding=PLAIN"`
 	Path                 string `parquet:"name=path, type=UTF8, encoding=PLAIN"`
@@ -59,7 +59,7 @@ func writeRecords(pw *writer.ParquetWriter, n int) {
 
 	for i := 0; i < n; i++ {
 		clusterID := faker.UUIDHyphenated()
-		record.Id = int64(i)
+		record.ID = int64(i)
 		record.Key = clusterID[0:1]
 		record.ClusterID = clusterID
 		record.Path = faker.Name()
