@@ -110,6 +110,17 @@ errcheck: ## Run Go error checker over all source files
 	pushd parquet-read-performance; errcheck ./...; popd
 	pushd parquet-write-performance; errcheck ./...; popd
 
+vet: ## Run go vet. Report likely mistakes in source code
+	pushd db-reader; go vet ./...; popd
+	pushd db-writer; go vet ./...; popd
+	pushd topic-constructor; go vet ./...; popd
+	pushd topic-cleaner; go vet ./...; popd
+	pushd message-producer; go vet ./...; popd
+	pushd parquet-generator; go vet ./...; popd
+	pushd parquet-reader; go vet ./...; popd
+	pushd parquet-read-performance; go vet ./...; popd
+	pushd parquet-write-performance; go vet ./...; popd
+
 help: ## Show this help screen
 	@echo 'Usage: make <OPTIONS> ... <TARGETS>'
 	@echo ''
