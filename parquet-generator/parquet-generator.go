@@ -158,6 +158,41 @@ func stopWrite(pw *writer.ParquetWriter) {
 	}
 }
 
+func generateParquetFile(storage *sql.DB, filename string, compression parquet.CompressionCodec) {
+	t1 := time.Now()
+
+	w, err := os.Create(filename)
+	if err != nil {
+		log.Println("Can't create local file", err)
+		return
+	}
+
+	defer w.Close()
+
+	// initialize Parquet file writer
+	pw, err := writer.NewParquetWriterFromWriter(w, new(Report), 4)
+	if err != nil {
+		log.Println("Can't create parquet writer", err)
+		return
+	}
+
+	pw.RowGroupSize = 128 * 1024 * 1024 //128M
+	pw.CompressionType = compression
+
+	defer stopWrite(pw)
+
+	readAndExportAllRecords(storage, pw)
+
+	log.Println("Write Finished")
+
+	// compute and print duration
+	t2 := time.Now()
+	since := time.Since(t1)
+	log.Println("Start time: ", t1)
+	log.Println("End time:   ", t2)
+	log.Println("Duration:   ", since)
+}
+
 func main() {
 	// filled via command line arguments
 	var databaseHost string
@@ -177,8 +212,6 @@ func main() {
 	flag.StringVar(&outputFile, "output", defaultOutputFile, "output file (Parquet)")
 	flag.Parse()
 
-	t1 := time.Now()
-
 	// try to initialize the storage
 	storage, err := initStorage(databaseHost, databasePort, databaseUser, databasePassword, databaseName)
 	if err != nil {
@@ -188,34 +221,7 @@ func main() {
 	// storage needs to be closed properly
 	defer storage.Close()
 
-	w, err := os.Create("flat.parquet")
-	if err != nil {
-		log.Println("Can't create local file", err)
-		return
-	}
-
-	defer w.Close()
-
-	// initialize Parquet file writer
-	pw, err := writer.NewParquetWriterFromWriter(w, new(Report), 4)
-	if err != nil {
-		log.Println("Can't create parquet writer", err)
-		return
-	}
-
-	pw.RowGroupSize = 128 * 1024 * 1024 //128M
-	pw.CompressionType = parquet.CompressionCodec_SNAPPY
-
-	defer stopWrite(pw)
-
-	readAndExportAllRecords(storage, pw)
-
-	log.Println("Write Finished")
-
-	// compute and print duration
-	t2 := time.Now()
-	since := time.Since(t1)
-	log.Println("Start time: ", t1)
-	log.Println("End time:   ", t2)
-	log.Println("Duration:   ", since)
+	generateParquetFile(storage, databaseName+"_none_compression.parquet", parquet.CompressionCodec_UNCOMPRESSED)
+	generateParquetFile(storage, databaseName+"_snappy_compression.parquet", parquet.CompressionCodec_SNAPPY)
+	generateParquetFile(storage, databaseName+"_gzip_compression.parquet", parquet.CompressionCodec_GZIP)
 }
