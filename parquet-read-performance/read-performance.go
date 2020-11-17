@@ -30,7 +30,7 @@ import (
 
 // Report represents one record stored in Parquet file
 type Report struct {
-	Id                   int64  `parquet:"name=id, type=INT64"`
+	ID                   int64  `parquet:"name=id, type=INT64"`
 	Key                  string `parquet:"name=key, type=UTF8, encoding=PLAIN_DICTIONARY"`
 	ClusterID            string `parquet:"name=cluster_id, type=UTF8, encoding=PLAIN"`
 	Path                 string `parquet:"name=path, type=UTF8, encoding=PLAIN"`
