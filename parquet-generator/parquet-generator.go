@@ -47,7 +47,7 @@ const defaultOutputFile = "flat.parquet"
 
 // Report represents one record stored in Parquet file
 type Report struct {
-	Id                   int64  `parquet:"name=id, type=INT64"`
+	ID                   int64  `parquet:"name=id, type=INT64"`
 	Key                  string `parquet:"name=key, type=UTF8, encoding=PLAIN_DICTIONARY"`
 	ClusterID            string `parquet:"name=cluster_id, type=UTF8, encoding=PLAIN"`
 	Path                 string `parquet:"name=path, type=UTF8, encoding=PLAIN"`
@@ -119,7 +119,7 @@ func readAndExportAllRecords(storage *sql.DB, pw *writer.ParquetWriter) {
 
 		// create report structure to be stored in Parquet file
 		reportRecord := Report{
-			Id:                   int64(id),
+			ID:                   int64(id),
 			Key:                  key,
 			ClusterID:            clusterID,
 			Path:                 path,
