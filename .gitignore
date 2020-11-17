@@ -139,3 +139,5 @@ parquet-generator/parquet-generator
 
 # Parquet files
 *.parquet
+
+issue.py
