@@ -1,3 +1,5 @@
+#!/bin/bash
+
 ./parquet-generator --db-name d0 > 0.txt 2>&1 &
 ./parquet-generator --db-name d1 > 1.txt 2>&1 &
 ./parquet-generator --db-name d2 > 2.txt 2>&1 &
