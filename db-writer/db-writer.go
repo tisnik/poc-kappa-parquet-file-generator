@@ -22,10 +22,13 @@ limitations under the License.
 package main
 
 import (
+	"encoding/csv"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
+	"os"
+	"strconv"
 	"time"
 
 	"database/sql"
@@ -75,7 +78,7 @@ func New(brokerAddress string) (sarama.Consumer, error) {
 
 // startConsumer function initializes the consumer and starts processing
 // messages
-func startConsumer(storage *sql.DB, brokerAddress string, topicName string, partition int) {
+func startConsumer(storage *sql.DB, brokerAddress string, topicName string, partition int, csvWriter *csv.Writer) {
 	// construct Kafka consumer
 	consumer, err := New(brokerAddress)
 	if err != nil {
@@ -94,7 +97,7 @@ func startConsumer(storage *sql.DB, brokerAddress string, topicName string, part
 	// partition consumer needs to be closed properly
 	defer closePartitionConsumer(partitionConsumer)
 
-	consumed, errors := consumeMessages(storage, partitionConsumer)
+	consumed, errors := consumeMessages(storage, partitionConsumer, csvWriter)
 
 	fmt.Printf("Consumed: %d\n", consumed)
 	fmt.Printf("Errors:   %d\n", errors)
@@ -120,7 +123,7 @@ func closePartitionConsumer(partitionConsumer sarama.PartitionConsumer) {
 
 // consumeMessages function consumes messages from Kafka and process them
 // accordingly
-func consumeMessages(storage *sql.DB, partitionConsumer sarama.PartitionConsumer) (int, int) {
+func consumeMessages(storage *sql.DB, partitionConsumer sarama.PartitionConsumer, csvWriter *csv.Writer) (int, int) {
 	t1 := time.Now()
 	consumed := 0
 	errors := 0
@@ -141,6 +144,10 @@ func consumeMessages(storage *sql.DB, partitionConsumer sarama.PartitionConsumer
 		// log.Println("Start time: ", t1)
 		// log.Println("End time:   ", t2)
 		log.Printf("Consumed: %d  Offset: %d  Duration: %v", consumed, msg.Offset, since)
+
+		time := strconv.FormatFloat(float64(since)/1000.0/1000.0, 'f', 1, 64)
+		csvWriter.Write([]string{time})
+		csvWriter.Flush()
 	}
 	return consumed, errors
 }
@@ -244,6 +251,18 @@ func main() {
 	// storage needs to be closed properly
 	defer storage.Close()
 
+	csvFileName := fmt.Sprintf("db-writer-%d.csv", partition)
+	csvFile, err := os.Create(csvFileName)
+	if err != nil {
+		log.Fatal("Create CSV file", err)
+	}
+
+	defer csvFile.Close()
+
+	csvWriter := csv.NewWriter(csvFile)
+	defer csvWriter.Flush()
+	csvWriter.Write([]string{"Cummulative time"})
+
 	// start consuming messages and store them into opened storage
-	startConsumer(storage, brokerAddress, topicName, partition)
+	startConsumer(storage, brokerAddress, topicName, partition, csvWriter)
 }
