@@ -121,6 +121,17 @@ vet: ## Run go vet. Report likely mistakes in source code
 	pushd parquet-read-performance; go vet ./...; popd
 	pushd parquet-write-performance; go vet ./...; popd
 
+gocyclo: ## Run gocyclo
+	gocyclo -over 12 -avg db-reader
+	gocyclo -over 12 -avg db-writer
+	gocyclo -over 12 -avg topic-constructor
+	gocyclo -over 12 -avg topic-cleaner
+	gocyclo -over 12 -avg message-producer
+	gocyclo -over 12 -avg parquet-generator
+	gocyclo -over 12 -avg parquet-reader
+	gocyclo -over 12 -avg parquet-read-performance
+	gocyclo -over 12 -avg parquet-write-performance
+
 help: ## Show this help screen
 	@echo 'Usage: make <OPTIONS> ... <TARGETS>'
 	@echo ''
