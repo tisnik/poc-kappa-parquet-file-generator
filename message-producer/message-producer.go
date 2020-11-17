@@ -29,6 +29,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/Shopify/sarama" // Sarama 1.22.0
 )
@@ -117,7 +118,7 @@ func produceMessagesFromJSONs(producer sarama.SyncProducer, topic string, filena
 
 	// we need a buffer with larger capacity as lines are very long
 	// (larger that the default max capacity 64kB)
-	const maxCapacity = 512 * 1024
+	const maxCapacity = 1024 * 1024
 	buffer := make([]byte, maxCapacity)
 	scanner.Buffer(buffer, maxCapacity)
 
@@ -171,6 +172,8 @@ func main() {
 		log.Fatal("Input file name needs to be provided on CLI")
 	}
 
+	t1 := time.Now()
+
 	// construct new interface to Kafka broker
 	producer, err := New(brokerAddress)
 	if err != nil {
@@ -181,4 +184,13 @@ func main() {
 
 	// and start producing messages to it
 	produceMessagesFromJSONs(producer, topicName, fileName)
+
+	log.Println("Producing messages finished")
+
+	// compute and print duration
+	t2 := time.Now()
+	since := time.Since(t1)
+	log.Println("Start time: ", t1)
+	log.Println("End time:   ", t2)
+	log.Println("Duration:   ", since)
 }
