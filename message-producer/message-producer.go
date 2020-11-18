@@ -148,7 +148,10 @@ func produceMessagesFromJSONs(producer sarama.SyncProducer, topic string, filena
 		key := clusterID[0]
 
 		log.Printf("producing message for cluster %s using key %c", clusterID, key)
-		produceMessage(producer, topic, text, key)
+		_, _, err = produceMessage(producer, topic, text, key)
+		if err != nil {
+			fmt.Println("err", err)
+		}
 	}
 
 	// check if file processing was successful
