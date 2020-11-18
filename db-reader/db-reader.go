@@ -60,6 +60,13 @@ func initStorage(host string, port int, user string, password string, dbname str
 	return db, err
 }
 
+func closeQuery(rows *sql.Rows) {
+	err := rows.Close()
+	if err != nil {
+		log.Println("rows.Close error", err)
+	}
+}
+
 // readAndDisplayAllRecords function tries to read all records from database.
 // Records are to be read sequentially by its unique ID. Content of recors is
 // displayed on standard output.
@@ -74,7 +81,7 @@ func readAndDisplayAllRecords(storage *sql.DB, showID bool, showKey bool,
 	if err != nil {
 		log.Fatal("storage.Query", err)
 	}
-	defer rows.Close()
+	defer closeQuery(rows)
 
 	// process all records, one by one
 	for rows.Next() {
