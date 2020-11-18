@@ -78,6 +78,13 @@ func initStorage(host string, port int, user string, password string, dbname str
 	return db, err
 }
 
+func closeQuery(rows *sql.Rows) {
+	err := rows.Close()
+	if err != nil {
+		log.Println("rows.Close error", err)
+	}
+}
+
 // readAndExportAllRecords function read all reports from SQL database and
 // write them into Parquet file.
 func readAndExportAllRecords(storage *sql.DB, pw *writer.ParquetWriter) {
@@ -94,7 +101,7 @@ func readAndExportAllRecords(storage *sql.DB, pw *writer.ParquetWriter) {
 	if err != nil {
 		log.Fatal("storage.Query", err)
 	}
-	defer rows.Close()
+	defer closeQuery(rows)
 
 	// process all records, one by one
 	for rows.Next() {
