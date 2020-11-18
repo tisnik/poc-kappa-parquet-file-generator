@@ -78,6 +78,16 @@ func writeRecords(pw *writer.ParquetWriter, n int) {
 	}
 }
 
+// closeFile function tries to close the Parquet file
+func closeFile(file *os.File) {
+	err := file.Close()
+
+	// check for any error during close operation
+	if err != nil {
+		log.Fatal("Can't close the Parquet file")
+	}
+}
+
 // stopWrite function stop writing into Parquet file
 func stopWrite(pw *writer.ParquetWriter) {
 	err := pw.WriteStop()
@@ -97,7 +107,7 @@ func createAndWriteIntoParquetFile(filename string, records int, compression par
 		return
 	}
 
-	defer w.Close()
+	defer closeFile(w)
 
 	// initialize Parquet file writer
 	pw, err := writer.NewParquetWriterFromWriter(w, new(Report), 1)
