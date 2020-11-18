@@ -150,6 +150,16 @@ func readAndExportAllRecords(storage *sql.DB, pw *writer.ParquetWriter) {
 
 }
 
+// closeFile function tries to close the Parquet file
+func closeFile(file *os.File) {
+	err := file.Close()
+
+	// check for any error during close operation
+	if err != nil {
+		log.Fatal("Can't close the Parquet file")
+	}
+}
+
 // stopWrite function stop writing into Parquet file
 func stopWrite(pw *writer.ParquetWriter) {
 	err := pw.WriteStop()
@@ -167,7 +177,7 @@ func generateParquetFile(storage *sql.DB, filename string, compression parquet.C
 		return
 	}
 
-	defer w.Close()
+	defer closeFile(w)
 
 	// initialize Parquet file writer
 	pw, err := writer.NewParquetWriterFromWriter(w, new(Report), 4)
