@@ -203,6 +203,15 @@ func generateParquetFile(storage *sql.DB, filename string, compression parquet.C
 	log.Println("Duration:   ", since)
 }
 
+// closeStorage function tries to close the connection to storage
+func closeStorage(storage *sql.DB) {
+	err := storage.Close()
+
+	if err != nil {
+		log.Fatal("storage.Close:", err)
+	}
+}
+
 func main() {
 	// filled via command line arguments
 	var databaseHost string
@@ -229,7 +238,7 @@ func main() {
 	}
 
 	// storage needs to be closed properly
-	defer storage.Close()
+	defer closeStorage(storage)
 
 	generateParquetFile(storage, databaseName+"_none_compression.parquet", parquet.CompressionCodec_UNCOMPRESSED)
 	generateParquetFile(storage, databaseName+"_snappy_compression.parquet", parquet.CompressionCodec_SNAPPY)
