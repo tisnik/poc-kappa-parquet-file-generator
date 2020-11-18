@@ -123,6 +123,15 @@ func readAndDisplayAllRecords(storage *sql.DB, showID bool, showKey bool,
 	}
 }
 
+// closeStorage function tries to close the connection to storage
+func closeStorage(storage *sql.DB) {
+	err := storage.Close()
+
+	if err != nil {
+		log.Fatal("storage.Close:", err)
+	}
+}
+
 func main() {
 	// filled via command line arguments
 	var databaseHost string
@@ -160,7 +169,7 @@ func main() {
 	}
 
 	// storage needs to be closed properly
-	defer storage.Close()
+	closeStorage(storage)
 
 	// read and display all records
 	readAndDisplayAllRecords(storage, showID, showKey, showClusterID,
