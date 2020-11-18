@@ -206,6 +206,15 @@ func initStorage(host string, port int, user string, password string, dbname str
 	return db, err
 }
 
+// closeStorage function tries to close the connection to storage
+func closeStorage(storage *sql.DB) {
+	err := storage.Close()
+
+	if err != nil {
+		log.Fatal("storage.Close:", err)
+	}
+}
+
 func main() {
 	const noTopic = ""
 	const noPartition = -1
@@ -249,7 +258,7 @@ func main() {
 	}
 
 	// storage needs to be closed properly
-	defer storage.Close()
+	defer closeStorage(storage)
 
 	csvFileName := fmt.Sprintf("db-writer-%d.csv", partition)
 	csvFile, err := os.Create(csvFileName)
