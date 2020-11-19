@@ -266,7 +266,12 @@ func main() {
 		log.Fatal("Create CSV file", err)
 	}
 
-	defer csvFile.Close()
+	defer func() {
+		err := csvFile.Close()
+		if err != nil {
+			log.Fatal("Close CSV file", err)
+		}
+	}()
 
 	csvWriter := csv.NewWriter(csvFile)
 	defer csvWriter.Flush()
