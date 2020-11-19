@@ -1,6 +1,7 @@
 # PoC: Parquet file generator based on Kappa architecture
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/tisnik/poc-kappa-parquet-file-generator)](https://goreportcard.com/report/github.com/tisnik/poc-kappa-parquet-file-generator)
+[![GitHub Pages](https://img.shields.io/badge/%20-GitHub%20Pages-informational)](https://tisnik.github.io/popc-kappa-parquet-file-generator/)
 
 Parquet file generator and pre-worker
 
