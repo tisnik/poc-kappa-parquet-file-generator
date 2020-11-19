@@ -148,6 +148,14 @@ func produceMessagesFromJSONs(producer sarama.SyncProducer, topic string, filena
 	}
 }
 
+// closeProducer function tries to close Kafka producer
+func closeProducer(producer sarama.SyncProducer) {
+	err := producer.Close()
+	if err != nil {
+		log.Fatal("producer.Close()", err)
+	}
+}
+
 func main() {
 	const noTopic = ""
 	const noFile = ""
@@ -181,7 +189,7 @@ func main() {
 		log.Fatal("New producer", err)
 	}
 	log.Printf("Producer has been initialized: %v\n", producer)
-	defer producer.Close()
+	defer closeProducer(producer)
 
 	// and start producing messages to it
 	produceMessagesFromJSONs(producer, topicName, fileName)
