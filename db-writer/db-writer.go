@@ -270,7 +270,11 @@ func main() {
 
 	csvWriter := csv.NewWriter(csvFile)
 	defer csvWriter.Flush()
-	csvWriter.Write([]string{"Cummulative time"})
+
+	err = csvWriter.Write([]string{"Cummulative time"})
+	if err != nil {
+		log.Println("Error writting header into CSV file", err)
+	}
 
 	// start consuming messages and store them into opened storage
 	startConsumer(storage, brokerAddress, topicName, partition, csvWriter)
