@@ -146,7 +146,12 @@ func consumeMessages(storage *sql.DB, partitionConsumer sarama.PartitionConsumer
 		log.Printf("Consumed: %d  Offset: %d  Duration: %v", consumed, msg.Offset, since)
 
 		time := strconv.FormatFloat(float64(since)/1000.0/1000.0, 'f', 1, 64)
-		csvWriter.Write([]string{time})
+
+		err = csvWriter.Write([]string{time})
+		if err != nil {
+			log.Println("Error writing data into CSV", err)
+		}
+
 		csvWriter.Flush()
 	}
 	return consumed, errors
@@ -278,7 +283,7 @@ func main() {
 
 	err = csvWriter.Write([]string{"Cummulative time"})
 	if err != nil {
-		log.Println("Error writting header into CSV file", err)
+		log.Println("Error writing header into CSV file", err)
 	}
 
 	// start consuming messages and store them into opened storage
