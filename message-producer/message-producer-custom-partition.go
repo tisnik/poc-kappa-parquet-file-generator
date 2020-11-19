@@ -105,6 +105,16 @@ func keyFromClusterID(clusterID string) byte {
 	return 0xff
 }
 
+// closeFile function tries to close the Parquet file
+func closeFile(file *os.File) {
+	err := file.Close()
+
+	// check for any error during close operation
+	if err != nil {
+		log.Fatal("Can't close the Parquet file")
+	}
+}
+
 // produceMessagesFromJSONs read provided input file line by line, parse JSON
 // values from each line, creates Kafka message and send the message to Kafka
 // broker into selected topic.
@@ -113,7 +123,7 @@ func produceMessagesFromJSONs(producer sarama.SyncProducer, topic string, filena
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer file.Close()
+	defer closeFile(file)
 
 	scanner := bufio.NewScanner(file)
 
