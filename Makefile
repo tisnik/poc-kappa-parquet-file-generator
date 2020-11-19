@@ -106,6 +106,7 @@ parquet-write-performance/write-performance: parquet-write-performance/write-per
 build:	topic-cleaner/topic-cleaner \
 	topic-constructor/topic-constructor \
 	message-producer/message-producer \
+	message-producer/message-producer-custom-partition \
 	db-reader/db-reader \
 	db-writer/db-writer \
 	parquet-generator/parquet-generator \
@@ -117,6 +118,7 @@ clean: ## Perform cleanup
 	rm topic-cleaner/topic-cleaner
 	rm topic-constructor/topic-constructor
 	rm message-producer/message-producer
+	rm message-producer/message-producer-custom-partition
 	rm db-reader/db-reader
 	rm db-writer/db-writer
 	rm parquet-generator/parquet-generator
