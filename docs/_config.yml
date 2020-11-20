@@ -14,11 +14,10 @@ footer_content: "Copyright &copy; 2020 Pavel Tisnovsky</a>"
 
 # Build settings
 markdown: kramdown
-remote_theme: pmarsceill/just-the-docs
-plugins:
-  - jekyll-remote-theme
 
 exclude:
   - Gemfile
   - Gemfile.lock
   - vendor/
+
+theme: jekyll-theme-leap-day
