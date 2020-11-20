@@ -14,7 +14,7 @@ from selected Kafka topic and PostgreSQL is used as a cache for such data.
 
 ### A classic Kappa architecture utilizing multiple Kafka partitions
 
-![kappa_multiple_partitions_png](kappa_multiple_partitions_png)
+![kappa_multiple_partitions.png](kappa_multiple_partitions.png)
 
 ### PostgreSQL used as a cache, not scaled up
 
