@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<!--
+ Copyright 2020 Red Hat, Inc
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<html>
+<head>
+<title>message-producer.go</title>
+<meta charset="utf-8"/>
+<style type="text/css">body {
+    background: rgb(225, 225, 225);
+    margin: 0px;
+    padding: 0px;
+}
+
+#docgo p {
+    margin-top: 0px;
+    margin-right: 0px;
+    margin-bottom: 15px;
+    margin-left: 0px;
+}
+
+#docgo div {
+    display: inline;
+}
+
+#docgo #background {
+    position: fixed;
+    top: 0; left: 525px; right: 0; bottom: 0;
+    background: rgb(47, 47, 47);
+    border-left: 1px solid #e5e5ee;
+    z-index: -1;
+}
+
+#docgo .keyword {
+    color: rgb(250, 200, 100);
+}
+
+#docgo .literal {
+    color: rgb(140, 190, 100);
+}
+
+#docgo .ident {
+    color: white;
+}
+
+#docgo .operator {
+    color: white;
+}
+
+#docgo .comment {
+}
+
+#docgo h1, h2, h3, h4, h5 {
+    text-align: left;
+    margin-top: 0px;
+    margin-right: 0px;
+    margin-bottom: 15px;
+    margin-left: 0px;
+}
+
+#docgo h1 {
+    margin-top: 40px;
+}
+
+#docgo .doc {
+    vertical-align: top;
+    font-family: 'Palatino Linotype', 'Book Antiqua', Palatino, FreeSerif, serif;
+    font-size: 15px;
+    line-height: 22px;
+    color: black;
+    min-width: 450px;
+    max-width: 450px;
+    padding-top: 10px;
+    padding-right: 25px;
+    padding-bottom: 1px;
+    padding-left: 50px;
+    overflow-x: hidden;
+}
+
+#docgo .code {
+    min-width: 650px;
+    max-width: 650px;
+    padding-left: 25px;
+    padding-right: 15px;
+    border-left: 1px;
+    overflow-x: hidden;
+    vertical-align: top;
+}
+
+#docgo .code pre code  {
+    font-size: 12px;
+    line-height: 18px;
+    font-family: Menlo, Monaco, Consolas, "Lucida Console", monospace;
+    color: rgb(120, 120, 120);
+}
+</style>
+</head>
+<body>
+<div id="docgo">
+  <div id="background"></div>
+  <table>
+    <thead><tr><th class="doc"><h1>message-producer.go</h1></th><th class="code"></th></tr></thead>
+    <tbody>
+      
+      <tr class="section">
+	<td class="doc"></td>
+	<td class="code"><pre><code><div class="comment">/*
+Copyright © 2020 Pavel Tisnovsky
+
+Licensed under the Apache License, Version 2.0 (the &#34;License&#34;);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an &#34;AS IS&#34; BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/</div>
+
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>This utility reads and parses the input file that should contains message
+contents split by newline character. Each message is represented as JSON (ie
+the input file consists of several JSONs, one JSON per line). This JSON is
+de-serialized and cluster ID is used to choose the <code>key</code> for message to be
+written into Kafka. Message <code>value</code> contains the whole JSON.</p>
+</td>
+	<td class="code"><pre><code>
+<div class="keyword">package</div> <div class="ident">main</div><div class="operator"></div>
+
+<div class="keyword">import</div> <div class="operator">(</div>
+	<div class="literal">&#34;bufio&#34;</div><div class="operator"></div>
+	<div class="literal">&#34;encoding/json&#34;</div><div class="operator"></div>
+	<div class="literal">&#34;flag&#34;</div><div class="operator"></div>
+	<div class="literal">&#34;fmt&#34;</div><div class="operator"></div>
+	<div class="literal">&#34;log&#34;</div><div class="operator"></div>
+	<div class="literal">&#34;os&#34;</div><div class="operator"></div>
+	<div class="literal">&#34;time&#34;</div><div class="operator"></div>
+
+	<div class="literal">&#34;github.com/Shopify/sarama&#34;</div> <div class="operator"></div><div class="comment">// Sarama 1.22.0</div>
+<div class="operator">)</div><div class="operator"></div>
+
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>defaultBrokerAddress represents address of broker running locally.
+Usually we need to communicate with this broker.</p>
+</td>
+	<td class="code"><pre><code><div class="keyword">const</div> <div class="ident">defaultBrokerAddress</div> <div class="operator">=</div> <div class="literal">&#34;localhost:9092&#34;</div><div class="operator"></div>
+
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>Metadata represents nested data structure containing report metadata</p>
+</td>
+	<td class="code"><pre><code><div class="keyword">type</div> <div class="ident">Metadata</div> <div class="keyword">struct</div> <div class="operator">{</div>
+	<div class="ident">ClusterID</div>            <div class="ident">string</div> <div class="literal">`json:&#34;cluster_id&#34;`</div><div class="operator"></div>
+	<div class="ident">ExternalOrganization</div> <div class="ident">string</div> <div class="literal">`json:&#34;external_organization&#34;`</div><div class="operator"></div>
+<div class="operator">}</div><div class="operator"></div>
+
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>Report represents the overall structure of report data (messages)</p>
+</td>
+	<td class="code"><pre><code><div class="keyword">type</div> <div class="ident">Report</div> <div class="keyword">struct</div> <div class="operator">{</div>
+	<div class="ident">Path</div>     <div class="ident">string</div>   <div class="literal">`json:&#34;path&#34;`</div><div class="operator"></div>
+	<div class="ident">Metadata</div> <div class="ident">Metadata</div> <div class="literal">`json:&#34;metadata&#34;`</div><div class="operator"></div>
+<div class="operator">}</div><div class="operator"></div>
+
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>New constructor creates new instance of interface to Kafka broker</p>
+</td>
+	<td class="code"><pre><code><div class="keyword">func</div> <div class="ident">New</div><div class="operator">(</div><div class="ident">brokerAddress</div> <div class="ident">string</div><div class="operator">)</div> <div class="operator">(</div><div class="ident">sarama</div><div class="operator">.</div><div class="ident">SyncProducer</div><div class="operator">,</div> <div class="ident">error</div><div class="operator">)</div> <div class="operator">{</div>
+	<div class="ident">producer</div><div class="operator">,</div> <div class="ident">err</div> <div class="operator">:=</div> <div class="ident">sarama</div><div class="operator">.</div><div class="ident">NewSyncProducer</div><div class="operator">(</div><div class="operator">[</div><div class="operator">]</div><div class="ident">string</div><div class="operator">{</div><div class="ident">brokerAddress</div><div class="operator">}</div><div class="operator">,</div> <div class="ident">nil</div><div class="operator">)</div><div class="operator"></div>
+
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>check if Kafka producer has been initialized properly</p>
+</td>
+	<td class="code"><pre><code>	<div class="keyword">if</div> <div class="ident">err</div> <div class="operator">!=</div> <div class="ident">nil</div> <div class="operator">{</div>
+		<div class="ident">log</div><div class="operator">.</div><div class="ident">Fatal</div><div class="operator">(</div><div class="literal">&#34;unable to create a new Kafka producer&#34;</div><div class="operator">)</div><div class="operator"></div>
+		<div class="keyword">return</div> <div class="ident">nil</div><div class="operator">,</div> <div class="ident">err</div><div class="operator"></div>
+	<div class="operator">}</div><div class="operator"></div>
+
+	<div class="keyword">return</div> <div class="ident">producer</div><div class="operator">,</div> <div class="ident">nil</div><div class="operator"></div>
+<div class="operator">}</div><div class="operator"></div>
+
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>produceMessage function produce (send) one message with specified key to
+selected Kafka topic</p>
+</td>
+	<td class="code"><pre><code><div class="keyword">func</div> <div class="ident">produceMessage</div><div class="operator">(</div><div class="ident">producer</div> <div class="ident">sarama</div><div class="operator">.</div><div class="ident">SyncProducer</div><div class="operator">,</div> <div class="ident">topic</div> <div class="ident">string</div><div class="operator">,</div> <div class="ident">message</div> <div class="ident">string</div><div class="operator">,</div> <div class="ident">key</div> <div class="ident">byte</div><div class="operator">)</div> <div class="operator">(</div><div class="ident">int32</div><div class="operator">,</div> <div class="ident">int64</div><div class="operator">,</div> <div class="ident">error</div><div class="operator">)</div> <div class="operator">{</div>
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>message key needs to be represented as raw bytes</p>
+</td>
+	<td class="code"><pre><code>	<div class="ident">keyBytes</div> <div class="operator">:=</div> <div class="operator">[</div><div class="operator">]</div><div class="ident">byte</div><div class="operator">{</div><div class="ident">key</div><div class="operator">}</div><div class="operator"></div>
+
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>message value needs to be represented as raw bytes</p>
+</td>
+	<td class="code"><pre><code>	<div class="ident">bytes</div> <div class="operator">:=</div> <div class="operator">[</div><div class="operator">]</div><div class="ident">byte</div><div class="operator">(</div><div class="ident">message</div><div class="operator">)</div><div class="operator"></div>
+
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>try to produce (end) the message into specified topic</p>
+</td>
+	<td class="code"><pre><code>	<div class="ident">producerMsg</div> <div class="operator">:=</div> <div class="operator">&amp;</div><div class="ident">sarama</div><div class="operator">.</div><div class="ident">ProducerMessage</div><div class="operator">{</div>
+		<div class="ident">Topic</div><div class="operator">:</div> <div class="ident">topic</div><div class="operator">,</div>
+		<div class="ident">Key</div><div class="operator">:</div>   <div class="ident">sarama</div><div class="operator">.</div><div class="ident">ByteEncoder</div><div class="operator">(</div><div class="ident">keyBytes</div><div class="operator">)</div><div class="operator">,</div>
+		<div class="ident">Value</div><div class="operator">:</div> <div class="ident">sarama</div><div class="operator">.</div><div class="ident">ByteEncoder</div><div class="operator">(</div><div class="ident">bytes</div><div class="operator">)</div><div class="operator">,</div>
+	<div class="operator">}</div><div class="operator"></div>
+
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>check if send has been successful and get additional information
+where the message was stored</p>
+</td>
+	<td class="code"><pre><code>	<div class="ident">partition</div><div class="operator">,</div> <div class="ident">offset</div><div class="operator">,</div> <div class="ident">err</div> <div class="operator">:=</div> <div class="ident">producer</div><div class="operator">.</div><div class="ident">SendMessage</div><div class="operator">(</div><div class="ident">producerMsg</div><div class="operator">)</div><div class="operator"></div>
+	<div class="keyword">if</div> <div class="ident">err</div> <div class="operator">!=</div> <div class="ident">nil</div> <div class="operator">{</div>
+		<div class="ident">log</div><div class="operator">.</div><div class="ident">Fatal</div><div class="operator">(</div><div class="literal">&#34;failed to produce message to Kafka&#34;</div><div class="operator">)</div><div class="operator"></div>
+	<div class="operator">}</div> <div class="keyword">else</div> <div class="operator">{</div>
+		<div class="ident">log</div><div class="operator">.</div><div class="ident">Printf</div><div class="operator">(</div><div class="literal">&#34;message sent to partition %d at offset %d\n&#34;</div><div class="operator">,</div> <div class="ident">partition</div><div class="operator">,</div> <div class="ident">offset</div><div class="operator">)</div><div class="operator"></div>
+	<div class="operator">}</div><div class="operator"></div>
+	<div class="keyword">return</div> <div class="ident">partition</div><div class="operator">,</div> <div class="ident">offset</div><div class="operator">,</div> <div class="ident">err</div><div class="operator"></div>
+<div class="operator">}</div><div class="operator"></div>
+
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>keyFromClusterID constructs a key (byte value 0x00-0x0f) from cluster ID.
+Key is generated from the first character of cluster ID.</p>
+</td>
+	<td class="code"><pre><code><div class="keyword">func</div> <div class="ident">keyFromClusterID</div><div class="operator">(</div><div class="ident">clusterID</div> <div class="ident">string</div><div class="operator">)</div> <div class="ident">byte</div> <div class="operator">{</div>
+	<div class="ident">key</div> <div class="operator">:=</div> <div class="ident">clusterID</div><div class="operator">[</div><div class="literal">0</div><div class="operator">]</div><div class="operator"></div>
+	<div class="keyword">if</div> <div class="ident">key</div> <div class="operator">&gt;=</div> <div class="literal">&#39;0&#39;</div> <div class="operator">&amp;&amp;</div> <div class="ident">key</div> <div class="operator">&lt;=</div> <div class="literal">&#39;9&#39;</div> <div class="operator">{</div>
+		<div class="keyword">return</div> <div class="ident">key</div> <div class="operator">-</div> <div class="literal">&#39;0&#39;</div><div class="operator"></div>
+	<div class="operator">}</div><div class="operator"></div>
+	<div class="keyword">if</div> <div class="ident">key</div> <div class="operator">&gt;=</div> <div class="literal">&#39;a&#39;</div> <div class="operator">&amp;&amp;</div> <div class="ident">key</div> <div class="operator">&lt;=</div> <div class="literal">&#39;f&#39;</div> <div class="operator">{</div>
+		<div class="ident">key</div> <div class="operator">-=</div> <div class="literal">&#39;a&#39;</div><div class="operator"></div>
+		<div class="keyword">return</div> <div class="ident">key</div> <div class="operator">&#43;</div> <div class="literal">10</div><div class="operator"></div>
+	<div class="operator">}</div><div class="operator"></div>
+	<div class="keyword">return</div> <div class="literal">0xff</div><div class="operator"></div>
+<div class="operator">}</div><div class="operator"></div>
+
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>closeFile function tries to close the Parquet file</p>
+</td>
+	<td class="code"><pre><code><div class="keyword">func</div> <div class="ident">closeFile</div><div class="operator">(</div><div class="ident">file</div> <div class="operator">*</div><div class="ident">os</div><div class="operator">.</div><div class="ident">File</div><div class="operator">)</div> <div class="operator">{</div>
+	<div class="ident">err</div> <div class="operator">:=</div> <div class="ident">file</div><div class="operator">.</div><div class="ident">Close</div><div class="operator">(</div><div class="operator">)</div><div class="operator"></div>
+
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>check for any error during close operation</p>
+</td>
+	<td class="code"><pre><code>	<div class="keyword">if</div> <div class="ident">err</div> <div class="operator">!=</div> <div class="ident">nil</div> <div class="operator">{</div>
+		<div class="ident">log</div><div class="operator">.</div><div class="ident">Fatal</div><div class="operator">(</div><div class="literal">&#34;Can&#39;t close the Parquet file&#34;</div><div class="operator">)</div><div class="operator"></div>
+	<div class="operator">}</div><div class="operator"></div>
+<div class="operator">}</div><div class="operator"></div>
+
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>produceMessagesFromJSONs read provided input file line by line, parse JSON
+values from each line, creates Kafka message and send the message to Kafka
+broker into selected topic.</p>
+</td>
+	<td class="code"><pre><code><div class="keyword">func</div> <div class="ident">produceMessagesFromJSONs</div><div class="operator">(</div><div class="ident">producer</div> <div class="ident">sarama</div><div class="operator">.</div><div class="ident">SyncProducer</div><div class="operator">,</div> <div class="ident">topic</div> <div class="ident">string</div><div class="operator">,</div> <div class="ident">filename</div> <div class="ident">string</div><div class="operator">)</div> <div class="operator">{</div>
+	<div class="ident">file</div><div class="operator">,</div> <div class="ident">err</div> <div class="operator">:=</div> <div class="ident">os</div><div class="operator">.</div><div class="ident">Open</div><div class="operator">(</div><div class="ident">filename</div><div class="operator">)</div><div class="operator"></div>
+	<div class="keyword">if</div> <div class="ident">err</div> <div class="operator">!=</div> <div class="ident">nil</div> <div class="operator">{</div>
+		<div class="ident">log</div><div class="operator">.</div><div class="ident">Fatal</div><div class="operator">(</div><div class="ident">err</div><div class="operator">)</div><div class="operator"></div>
+	<div class="operator">}</div><div class="operator"></div>
+	<div class="keyword">defer</div> <div class="ident">closeFile</div><div class="operator">(</div><div class="ident">file</div><div class="operator">)</div><div class="operator"></div>
+
+	<div class="ident">scanner</div> <div class="operator">:=</div> <div class="ident">bufio</div><div class="operator">.</div><div class="ident">NewScanner</div><div class="operator">(</div><div class="ident">file</div><div class="operator">)</div><div class="operator"></div>
+
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>we need a buffer with larger capacity as lines are very long
+(larger that the default max capacity 64kB)</p>
+</td>
+	<td class="code"><pre><code>	<div class="keyword">const</div> <div class="ident">maxCapacity</div> <div class="operator">=</div> <div class="literal">1024</div> <div class="operator">*</div> <div class="literal">1024</div><div class="operator"></div>
+	<div class="ident">buffer</div> <div class="operator">:=</div> <div class="ident">make</div><div class="operator">(</div><div class="operator">[</div><div class="operator">]</div><div class="ident">byte</div><div class="operator">,</div> <div class="ident">maxCapacity</div><div class="operator">)</div><div class="operator"></div>
+	<div class="ident">scanner</div><div class="operator">.</div><div class="ident">Buffer</div><div class="operator">(</div><div class="ident">buffer</div><div class="operator">,</div> <div class="ident">maxCapacity</div><div class="operator">)</div><div class="operator"></div>
+
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>process the file line by line</p>
+</td>
+	<td class="code"><pre><code>	<div class="keyword">for</div> <div class="ident">scanner</div><div class="operator">.</div><div class="ident">Scan</div><div class="operator">(</div><div class="operator">)</div> <div class="operator">{</div>
+		<div class="ident">text</div> <div class="operator">:=</div> <div class="ident">scanner</div><div class="operator">.</div><div class="ident">Text</div><div class="operator">(</div><div class="operator">)</div><div class="operator"></div>
+		<div class="ident">bytes</div> <div class="operator">:=</div> <div class="operator">[</div><div class="operator">]</div><div class="ident">byte</div><div class="operator">(</div><div class="ident">text</div><div class="operator">)</div><div class="operator"></div>
+		<div class="keyword">var</div> <div class="ident">report</div> <div class="ident">Report</div><div class="operator"></div>
+
+		<div class="ident">err</div> <div class="operator">:=</div> <div class="ident">json</div><div class="operator">.</div><div class="ident">Unmarshal</div><div class="operator">(</div><div class="ident">bytes</div><div class="operator">,</div> <div class="operator">&amp;</div><div class="ident">report</div><div class="operator">)</div><div class="operator"></div>
+		<div class="keyword">if</div> <div class="ident">err</div> <div class="operator">!=</div> <div class="ident">nil</div> <div class="operator">{</div>
+			<div class="ident">fmt</div><div class="operator">.</div><div class="ident">Println</div><div class="operator">(</div><div class="literal">&#34;err&#34;</div><div class="operator">,</div> <div class="ident">err</div><div class="operator">)</div><div class="operator"></div>
+		<div class="operator">}</div><div class="operator"></div>
+
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>generate message key from cluster ID</p>
+</td>
+	<td class="code"><pre><code>		<div class="ident">clusterID</div> <div class="operator">:=</div> <div class="ident">report</div><div class="operator">.</div><div class="ident">Metadata</div><div class="operator">.</div><div class="ident">ClusterID</div><div class="operator"></div>
+		<div class="ident">key</div> <div class="operator">:=</div> <div class="ident">clusterID</div><div class="operator">[</div><div class="literal">0</div><div class="operator">]</div><div class="operator"></div>
+
+		<div class="ident">log</div><div class="operator">.</div><div class="ident">Printf</div><div class="operator">(</div><div class="literal">&#34;producing message for cluster %s using key %c&#34;</div><div class="operator">,</div> <div class="ident">clusterID</div><div class="operator">,</div> <div class="ident">key</div><div class="operator">)</div><div class="operator"></div>
+		<div class="ident">_</div><div class="operator">,</div> <div class="ident">_</div><div class="operator">,</div> <div class="ident">err</div> <div class="operator">=</div> <div class="ident">produceMessage</div><div class="operator">(</div><div class="ident">producer</div><div class="operator">,</div> <div class="ident">topic</div><div class="operator">,</div> <div class="ident">text</div><div class="operator">,</div> <div class="ident">key</div><div class="operator">)</div><div class="operator"></div>
+		<div class="keyword">if</div> <div class="ident">err</div> <div class="operator">!=</div> <div class="ident">nil</div> <div class="operator">{</div>
+			<div class="ident">fmt</div><div class="operator">.</div><div class="ident">Println</div><div class="operator">(</div><div class="literal">&#34;err&#34;</div><div class="operator">,</div> <div class="ident">err</div><div class="operator">)</div><div class="operator"></div>
+		<div class="operator">}</div><div class="operator"></div>
+	<div class="operator">}</div><div class="operator"></div>
+
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>check if file processing was successful</p>
+</td>
+	<td class="code"><pre><code>	<div class="keyword">if</div> <div class="ident">err</div> <div class="operator">:=</div> <div class="ident">scanner</div><div class="operator">.</div><div class="ident">Err</div><div class="operator">(</div><div class="operator">)</div><div class="operator">;</div> <div class="ident">err</div> <div class="operator">!=</div> <div class="ident">nil</div> <div class="operator">{</div>
+		<div class="ident">log</div><div class="operator">.</div><div class="ident">Fatal</div><div class="operator">(</div><div class="ident">err</div><div class="operator">)</div><div class="operator"></div>
+	<div class="operator">}</div><div class="operator"></div>
+<div class="operator">}</div><div class="operator"></div>
+
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>closeProducer function tries to close Kafka producer</p>
+</td>
+	<td class="code"><pre><code><div class="keyword">func</div> <div class="ident">closeProducer</div><div class="operator">(</div><div class="ident">producer</div> <div class="ident">sarama</div><div class="operator">.</div><div class="ident">SyncProducer</div><div class="operator">)</div> <div class="operator">{</div>
+	<div class="ident">err</div> <div class="operator">:=</div> <div class="ident">producer</div><div class="operator">.</div><div class="ident">Close</div><div class="operator">(</div><div class="operator">)</div><div class="operator"></div>
+	<div class="keyword">if</div> <div class="ident">err</div> <div class="operator">!=</div> <div class="ident">nil</div> <div class="operator">{</div>
+		<div class="ident">log</div><div class="operator">.</div><div class="ident">Fatal</div><div class="operator">(</div><div class="literal">&#34;producer.Close()&#34;</div><div class="operator">,</div> <div class="ident">err</div><div class="operator">)</div><div class="operator"></div>
+	<div class="operator">}</div><div class="operator"></div>
+<div class="operator">}</div><div class="operator"></div>
+
+<div class="keyword">func</div> <div class="ident">main</div><div class="operator">(</div><div class="operator">)</div> <div class="operator">{</div>
+	<div class="keyword">const</div> <div class="ident">noTopic</div> <div class="operator">=</div> <div class="literal">&#34;&#34;</div><div class="operator"></div>
+	<div class="keyword">const</div> <div class="ident">noFile</div> <div class="operator">=</div> <div class="literal">&#34;&#34;</div><div class="operator"></div>
+
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>filled via command line arguments</p>
+</td>
+	<td class="code"><pre><code>	<div class="keyword">var</div> <div class="ident">topicName</div> <div class="ident">string</div><div class="operator"></div>
+	<div class="keyword">var</div> <div class="ident">brokerAddress</div> <div class="ident">string</div><div class="operator"></div>
+	<div class="keyword">var</div> <div class="ident">fileName</div> <div class="ident">string</div><div class="operator"></div>
+
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>find and parse all command line arguments</p>
+</td>
+	<td class="code"><pre><code>	<div class="ident">flag</div><div class="operator">.</div><div class="ident">StringVar</div><div class="operator">(</div><div class="operator">&amp;</div><div class="ident">topicName</div><div class="operator">,</div> <div class="literal">&#34;topic&#34;</div><div class="operator">,</div> <div class="ident">noTopic</div><div class="operator">,</div> <div class="literal">&#34;topic name&#34;</div><div class="operator">)</div><div class="operator"></div>
+	<div class="ident">flag</div><div class="operator">.</div><div class="ident">StringVar</div><div class="operator">(</div><div class="operator">&amp;</div><div class="ident">brokerAddress</div><div class="operator">,</div> <div class="literal">&#34;broker&#34;</div><div class="operator">,</div> <div class="ident">defaultBrokerAddress</div><div class="operator">,</div> <div class="literal">&#34;broker address&#34;</div><div class="operator">)</div><div class="operator"></div>
+	<div class="ident">flag</div><div class="operator">.</div><div class="ident">StringVar</div><div class="operator">(</div><div class="operator">&amp;</div><div class="ident">fileName</div><div class="operator">,</div> <div class="literal">&#34;input&#34;</div><div class="operator">,</div> <div class="ident">noFile</div><div class="operator">,</div> <div class="literal">&#34;input data file&#34;</div><div class="operator">)</div><div class="operator"></div>
+	<div class="ident">flag</div><div class="operator">.</div><div class="ident">Parse</div><div class="operator">(</div><div class="operator">)</div><div class="operator"></div>
+
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>check if topic name has been specified on command line</p>
+</td>
+	<td class="code"><pre><code>	<div class="keyword">if</div> <div class="ident">topicName</div> <div class="operator">==</div> <div class="ident">noTopic</div> <div class="operator">{</div>
+		<div class="ident">log</div><div class="operator">.</div><div class="ident">Fatal</div><div class="operator">(</div><div class="literal">&#34;Topic name needs to be provided on CLI&#34;</div><div class="operator">)</div><div class="operator"></div>
+	<div class="operator">}</div><div class="operator"></div>
+
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>check if topic name has been specified on command line</p>
+</td>
+	<td class="code"><pre><code>	<div class="keyword">if</div> <div class="ident">fileName</div> <div class="operator">==</div> <div class="ident">noFile</div> <div class="operator">{</div>
+		<div class="ident">log</div><div class="operator">.</div><div class="ident">Fatal</div><div class="operator">(</div><div class="literal">&#34;Input file name needs to be provided on CLI&#34;</div><div class="operator">)</div><div class="operator"></div>
+	<div class="operator">}</div><div class="operator"></div>
+
+	<div class="ident">t1</div> <div class="operator">:=</div> <div class="ident">time</div><div class="operator">.</div><div class="ident">Now</div><div class="operator">(</div><div class="operator">)</div><div class="operator"></div>
+
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>construct new interface to Kafka broker</p>
+</td>
+	<td class="code"><pre><code>	<div class="ident">producer</div><div class="operator">,</div> <div class="ident">err</div> <div class="operator">:=</div> <div class="ident">New</div><div class="operator">(</div><div class="ident">brokerAddress</div><div class="operator">)</div><div class="operator"></div>
+	<div class="keyword">if</div> <div class="ident">err</div> <div class="operator">!=</div> <div class="ident">nil</div> <div class="operator">{</div>
+		<div class="ident">log</div><div class="operator">.</div><div class="ident">Fatal</div><div class="operator">(</div><div class="literal">&#34;New producer&#34;</div><div class="operator">,</div> <div class="ident">err</div><div class="operator">)</div><div class="operator"></div>
+	<div class="operator">}</div><div class="operator"></div>
+	<div class="ident">log</div><div class="operator">.</div><div class="ident">Printf</div><div class="operator">(</div><div class="literal">&#34;Producer has been initialized: %v\n&#34;</div><div class="operator">,</div> <div class="ident">producer</div><div class="operator">)</div><div class="operator"></div>
+	<div class="keyword">defer</div> <div class="ident">closeProducer</div><div class="operator">(</div><div class="ident">producer</div><div class="operator">)</div><div class="operator"></div>
+
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>and start producing messages to it</p>
+</td>
+	<td class="code"><pre><code>	<div class="ident">produceMessagesFromJSONs</div><div class="operator">(</div><div class="ident">producer</div><div class="operator">,</div> <div class="ident">topicName</div><div class="operator">,</div> <div class="ident">fileName</div><div class="operator">)</div><div class="operator"></div>
+
+	<div class="ident">log</div><div class="operator">.</div><div class="ident">Println</div><div class="operator">(</div><div class="literal">&#34;Producing messages finished&#34;</div><div class="operator">)</div><div class="operator"></div>
+
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>compute and print duration</p>
+</td>
+	<td class="code"><pre><code>	<div class="ident">t2</div> <div class="operator">:=</div> <div class="ident">time</div><div class="operator">.</div><div class="ident">Now</div><div class="operator">(</div><div class="operator">)</div><div class="operator"></div>
+	<div class="ident">since</div> <div class="operator">:=</div> <div class="ident">time</div><div class="operator">.</div><div class="ident">Since</div><div class="operator">(</div><div class="ident">t1</div><div class="operator">)</div><div class="operator"></div>
+	<div class="ident">log</div><div class="operator">.</div><div class="ident">Println</div><div class="operator">(</div><div class="literal">&#34;Start time: &#34;</div><div class="operator">,</div> <div class="ident">t1</div><div class="operator">)</div><div class="operator"></div>
+	<div class="ident">log</div><div class="operator">.</div><div class="ident">Println</div><div class="operator">(</div><div class="literal">&#34;End time:   &#34;</div><div class="operator">,</div> <div class="ident">t2</div><div class="operator">)</div><div class="operator"></div>
+	<div class="ident">log</div><div class="operator">.</div><div class="ident">Println</div><div class="operator">(</div><div class="literal">&#34;Duration:   &#34;</div><div class="operator">,</div> <div class="ident">since</div><div class="operator">)</div><div class="operator"></div>
+<div class="operator">}</div><div class="operator"></div>
+
+</code></pre></td>
+      </tr>
+      
+    </tbody>
+  </table>
+</div>
+</body>
+</html>
