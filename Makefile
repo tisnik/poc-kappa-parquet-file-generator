@@ -20,6 +20,9 @@ DATABASE_HOST=localhost
 DATABASE_PORT=5432
 DATABASE_USER=postgres
 
+SOURCES:=$(shell find . -name '*.go')
+DOCFILES:=$(addprefix docs/packages/, $(addsuffix .html, $(basename ${SOURCES})))
+
 default: help
 
 # optional settings: export PGPASSWORD environment variable first
@@ -180,6 +183,18 @@ gocyclo: ## Run gocyclo
 	gocyclo -over 12 -avg parquet-reader
 	gocyclo -over 12 -avg parquet-read-performance
 	gocyclo -over 12 -avg parquet-write-performance
+
+docs/packages/%.html: %.go
+	mkdir -p $(dir $@)
+	docgo -outdir $(dir $@) $^
+	addlicense -c "Red Hat, Inc" -l "apache" -v $@
+
+godoc: export GO111MODULE=off
+godoc: install_docgo ${DOCFILES}
+
+install_docgo: export GO111MODULE=off
+install_docgo:
+	[[ `command -v docgo` ]] || go get -u github.com/dhconnelly/docgo
 
 help: ## Show this help screen
 	@echo 'Usage: make <OPTIONS> ... <TARGETS>'
