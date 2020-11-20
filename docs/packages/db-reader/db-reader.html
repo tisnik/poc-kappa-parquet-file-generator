@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<!--
+ Copyright 2020 Red Hat, Inc
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<html>
+<head>
+<title>db-reader.go</title>
+<meta charset="utf-8"/>
+<style type="text/css">body {
+    background: rgb(225, 225, 225);
+    margin: 0px;
+    padding: 0px;
+}
+
+#docgo p {
+    margin-top: 0px;
+    margin-right: 0px;
+    margin-bottom: 15px;
+    margin-left: 0px;
+}
+
+#docgo div {
+    display: inline;
+}
+
+#docgo #background {
+    position: fixed;
+    top: 0; left: 525px; right: 0; bottom: 0;
+    background: rgb(47, 47, 47);
+    border-left: 1px solid #e5e5ee;
+    z-index: -1;
+}
+
+#docgo .keyword {
+    color: rgb(250, 200, 100);
+}
+
+#docgo .literal {
+    color: rgb(140, 190, 100);
+}
+
+#docgo .ident {
+    color: white;
+}
+
+#docgo .operator {
+    color: white;
+}
+
+#docgo .comment {
+}
+
+#docgo h1, h2, h3, h4, h5 {
+    text-align: left;
+    margin-top: 0px;
+    margin-right: 0px;
+    margin-bottom: 15px;
+    margin-left: 0px;
+}
+
+#docgo h1 {
+    margin-top: 40px;
+}
+
+#docgo .doc {
+    vertical-align: top;
+    font-family: 'Palatino Linotype', 'Book Antiqua', Palatino, FreeSerif, serif;
+    font-size: 15px;
+    line-height: 22px;
+    color: black;
+    min-width: 450px;
+    max-width: 450px;
+    padding-top: 10px;
+    padding-right: 25px;
+    padding-bottom: 1px;
+    padding-left: 50px;
+    overflow-x: hidden;
+}
+
+#docgo .code {
+    min-width: 650px;
+    max-width: 650px;
+    padding-left: 25px;
+    padding-right: 15px;
+    border-left: 1px;
+    overflow-x: hidden;
+    vertical-align: top;
+}
+
+#docgo .code pre code  {
+    font-size: 12px;
+    line-height: 18px;
+    font-family: Menlo, Monaco, Consolas, "Lucida Console", monospace;
+    color: rgb(120, 120, 120);
+}
+</style>
+</head>
+<body>
+<div id="docgo">
+  <div id="background"></div>
+  <table>
+    <thead><tr><th class="doc"><h1>db-reader.go</h1></th><th class="code"></th></tr></thead>
+    <tbody>
+      
+      <tr class="section">
+	<td class="doc"></td>
+	<td class="code"><pre><code><div class="comment">/*
+Copyright © 2020 Pavel Tisnovsky
+
+Licensed under the Apache License, Version 2.0 (the &#34;License&#34;);
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an &#34;AS IS&#34; BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/</div>
+
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>This tool reads all results stored in PostgreSQL database. It is possible to
+use command line flags to select the database and its options (user, etc.).
+Additionally it is possible to choose which column(s) to display.</p>
+</td>
+	<td class="code"><pre><code><div class="keyword">package</div> <div class="ident">main</div><div class="operator"></div>
+
+<div class="keyword">import</div> <div class="operator">(</div>
+	<div class="literal">&#34;flag&#34;</div><div class="operator"></div>
+	<div class="literal">&#34;fmt&#34;</div><div class="operator"></div>
+	<div class="literal">&#34;log&#34;</div><div class="operator"></div>
+
+	<div class="literal">&#34;database/sql&#34;</div><div class="operator"></div>
+	<div class="ident">_</div> <div class="literal">&#34;github.com/lib/pq&#34;</div> <div class="operator"></div><div class="comment">// PostgreSQL database driver</div>
+<div class="operator">)</div><div class="operator"></div>
+
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>default values for database connector</p>
+</td>
+	<td class="code"><pre><code><div class="keyword">const</div> <div class="operator">(</div>
+	<div class="ident">defaultDatabaseHostname</div> <div class="operator">=</div> <div class="literal">&#34;localhost&#34;</div><div class="operator"></div>
+	<div class="ident">defaultDatabasePort</div>     <div class="operator">=</div> <div class="literal">5432</div><div class="operator"></div>
+	<div class="ident">defaultDatabaseName</div>     <div class="operator">=</div> <div class="literal">&#34;d0&#34;</div><div class="operator"></div>
+	<div class="ident">defaultDatabaseUser</div>     <div class="operator">=</div> <div class="literal">&#34;postgres&#34;</div><div class="operator"></div>
+	<div class="ident">defaultDatabasePassword</div> <div class="operator">=</div> <div class="literal">&#34;postgres&#34;</div><div class="operator"></div>
+<div class="operator">)</div><div class="operator"></div>
+
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>initStorage iniciates connection to DB storage.</p>
+</td>
+	<td class="code"><pre><code><div class="keyword">func</div> <div class="ident">initStorage</div><div class="operator">(</div><div class="ident">host</div> <div class="ident">string</div><div class="operator">,</div> <div class="ident">port</div> <div class="ident">int</div><div class="operator">,</div> <div class="ident">user</div> <div class="ident">string</div><div class="operator">,</div> <div class="ident">password</div> <div class="ident">string</div><div class="operator">,</div> <div class="ident">dbname</div> <div class="ident">string</div><div class="operator">)</div> <div class="operator">(</div><div class="operator">*</div><div class="ident">sql</div><div class="operator">.</div><div class="ident">DB</div><div class="operator">,</div> <div class="ident">error</div><div class="operator">)</div> <div class="operator">{</div>
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>connection string</p>
+</td>
+	<td class="code"><pre><code>	<div class="ident">psqlconn</div> <div class="operator">:=</div> <div class="ident">fmt</div><div class="operator">.</div><div class="ident">Sprintf</div><div class="operator">(</div><div class="literal">&#34;host=%s port=%d user=%s password=%s dbname=%s sslmode=disable&#34;</div><div class="operator">,</div> <div class="ident">host</div><div class="operator">,</div> <div class="ident">port</div><div class="operator">,</div> <div class="ident">user</div><div class="operator">,</div> <div class="ident">password</div><div class="operator">,</div> <div class="ident">dbname</div><div class="operator">)</div><div class="operator"></div>
+	<div class="ident">log</div><div class="operator">.</div><div class="ident">Println</div><div class="operator">(</div><div class="literal">&#34;Connecting to database: &#34;</div> <div class="operator">&#43;</div> <div class="ident">psqlconn</div><div class="operator">)</div><div class="operator"></div>
+
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>open database</p>
+</td>
+	<td class="code"><pre><code>	<div class="ident">db</div><div class="operator">,</div> <div class="ident">err</div> <div class="operator">:=</div> <div class="ident">sql</div><div class="operator">.</div><div class="ident">Open</div><div class="operator">(</div><div class="literal">&#34;postgres&#34;</div><div class="operator">,</div> <div class="ident">psqlconn</div><div class="operator">)</div><div class="operator"></div>
+	<div class="keyword">if</div> <div class="ident">err</div> <div class="operator">!=</div> <div class="ident">nil</div> <div class="operator">{</div>
+		<div class="ident">log</div><div class="operator">.</div><div class="ident">Fatal</div><div class="operator">(</div><div class="literal">&#34;Postgres driver initialization&#34;</div><div class="operator">,</div> <div class="ident">err</div><div class="operator">)</div><div class="operator"></div>
+	<div class="operator">}</div><div class="operator"></div>
+	<div class="ident">log</div><div class="operator">.</div><div class="ident">Println</div><div class="operator">(</div><div class="literal">&#34;Postgres driver initialization: OK&#34;</div><div class="operator">)</div><div class="operator"></div>
+
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>check the connection</p>
+</td>
+	<td class="code"><pre><code>	<div class="ident">err</div> <div class="operator">=</div> <div class="ident">db</div><div class="operator">.</div><div class="ident">Ping</div><div class="operator">(</div><div class="operator">)</div><div class="operator"></div>
+	<div class="keyword">if</div> <div class="ident">err</div> <div class="operator">!=</div> <div class="ident">nil</div> <div class="operator">{</div>
+		<div class="ident">log</div><div class="operator">.</div><div class="ident">Fatal</div><div class="operator">(</div><div class="literal">&#34;Ping to Postgres&#34;</div><div class="operator">,</div> <div class="ident">err</div><div class="operator">)</div><div class="operator"></div>
+	<div class="operator">}</div><div class="operator"></div>
+	<div class="ident">log</div><div class="operator">.</div><div class="ident">Println</div><div class="operator">(</div><div class="literal">&#34;Connection to database: OK&#34;</div><div class="operator">)</div><div class="operator"></div>
+
+	<div class="keyword">return</div> <div class="ident">db</div><div class="operator">,</div> <div class="ident">err</div><div class="operator"></div>
+<div class="operator">}</div><div class="operator"></div>
+
+<div class="keyword">func</div> <div class="ident">closeQuery</div><div class="operator">(</div><div class="ident">rows</div> <div class="operator">*</div><div class="ident">sql</div><div class="operator">.</div><div class="ident">Rows</div><div class="operator">)</div> <div class="operator">{</div>
+	<div class="ident">err</div> <div class="operator">:=</div> <div class="ident">rows</div><div class="operator">.</div><div class="ident">Close</div><div class="operator">(</div><div class="operator">)</div><div class="operator"></div>
+	<div class="keyword">if</div> <div class="ident">err</div> <div class="operator">!=</div> <div class="ident">nil</div> <div class="operator">{</div>
+		<div class="ident">log</div><div class="operator">.</div><div class="ident">Println</div><div class="operator">(</div><div class="literal">&#34;rows.Close error&#34;</div><div class="operator">,</div> <div class="ident">err</div><div class="operator">)</div><div class="operator"></div>
+	<div class="operator">}</div><div class="operator"></div>
+<div class="operator">}</div><div class="operator"></div>
+
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>readAndDisplayAllRecords function tries to read all records from database.
+Records are to be read sequentially by its unique ID. Content of recors is
+displayed on standard output.</p>
+</td>
+	<td class="code"><pre><code><div class="keyword">func</div> <div class="ident">readAndDisplayAllRecords</div><div class="operator">(</div><div class="ident">storage</div> <div class="operator">*</div><div class="ident">sql</div><div class="operator">.</div><div class="ident">DB</div><div class="operator">,</div> <div class="ident">showID</div> <div class="ident">bool</div><div class="operator">,</div> <div class="ident">showKey</div> <div class="ident">bool</div><div class="operator">,</div>
+	<div class="ident">showClusterID</div> <div class="ident">bool</div><div class="operator">,</div> <div class="ident">showPath</div> <div class="ident">bool</div><div class="operator">,</div> <div class="ident">showExternalOrganization</div> <div class="ident">bool</div><div class="operator">,</div>
+	<div class="ident">showReport</div> <div class="ident">bool</div><div class="operator">)</div> <div class="operator">{</div>
+
+	<div class="keyword">const</div> <div class="ident">query</div> <div class="operator">=</div> <div class="literal">&#34;SELECT id, key, cluster_id, path, external_organization, report FROM reports ORDER BY id&#34;</div><div class="operator"></div>
+
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>try to select all records</p>
+</td>
+	<td class="code"><pre><code>	<div class="ident">rows</div><div class="operator">,</div> <div class="ident">err</div> <div class="operator">:=</div> <div class="ident">storage</div><div class="operator">.</div><div class="ident">Query</div><div class="operator">(</div><div class="ident">query</div><div class="operator">)</div><div class="operator"></div>
+	<div class="keyword">if</div> <div class="ident">err</div> <div class="operator">!=</div> <div class="ident">nil</div> <div class="operator">{</div>
+		<div class="ident">log</div><div class="operator">.</div><div class="ident">Fatal</div><div class="operator">(</div><div class="literal">&#34;storage.Query&#34;</div><div class="operator">,</div> <div class="ident">err</div><div class="operator">)</div><div class="operator"></div>
+	<div class="operator">}</div><div class="operator"></div>
+	<div class="keyword">defer</div> <div class="ident">closeQuery</div><div class="operator">(</div><div class="ident">rows</div><div class="operator">)</div><div class="operator"></div>
+
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>process all records, one by one</p>
+</td>
+	<td class="code"><pre><code>	<div class="keyword">for</div> <div class="ident">rows</div><div class="operator">.</div><div class="ident">Next</div><div class="operator">(</div><div class="operator">)</div> <div class="operator">{</div>
+		<div class="keyword">var</div> <div class="ident">id</div> <div class="ident">int</div><div class="operator"></div>
+		<div class="keyword">var</div> <div class="ident">key</div> <div class="ident">string</div><div class="operator"></div>
+		<div class="keyword">var</div> <div class="ident">clusterID</div> <div class="ident">string</div><div class="operator"></div>
+		<div class="keyword">var</div> <div class="ident">path</div> <div class="ident">string</div><div class="operator"></div>
+		<div class="keyword">var</div> <div class="ident">externalOrganization</div> <div class="ident">string</div><div class="operator"></div>
+		<div class="keyword">var</div> <div class="ident">report</div> <div class="ident">string</div><div class="operator"></div>
+
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>try to read one record from database</p>
+</td>
+	<td class="code"><pre><code>		<div class="ident">err</div> <div class="operator">=</div> <div class="ident">rows</div><div class="operator">.</div><div class="ident">Scan</div><div class="operator">(</div><div class="operator">&amp;</div><div class="ident">id</div><div class="operator">,</div> <div class="operator">&amp;</div><div class="ident">key</div><div class="operator">,</div> <div class="operator">&amp;</div><div class="ident">clusterID</div><div class="operator">,</div> <div class="operator">&amp;</div><div class="ident">path</div><div class="operator">,</div> <div class="operator">&amp;</div><div class="ident">externalOrganization</div><div class="operator">,</div> <div class="operator">&amp;</div><div class="ident">report</div><div class="operator">)</div><div class="operator"></div>
+
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>skip errors</p>
+</td>
+	<td class="code"><pre><code>		<div class="keyword">if</div> <div class="ident">err</div> <div class="operator">!=</div> <div class="ident">nil</div> <div class="operator">{</div>
+			<div class="ident">log</div><div class="operator">.</div><div class="ident">Println</div><div class="operator">(</div><div class="literal">&#34;reading/scanning record&#34;</div><div class="operator">,</div> <div class="ident">err</div><div class="operator">)</div><div class="operator"></div>
+			<div class="keyword">continue</div><div class="operator"></div>
+		<div class="operator">}</div><div class="operator"></div>
+
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>print the record to standard output</p>
+</td>
+	<td class="code"><pre><code>		<div class="keyword">if</div> <div class="ident">showID</div> <div class="operator">{</div>
+			<div class="ident">fmt</div><div class="operator">.</div><div class="ident">Print</div><div class="operator">(</div><div class="ident">id</div><div class="operator">,</div> <div class="literal">&#34;\t&#34;</div><div class="operator">)</div><div class="operator"></div>
+		<div class="operator">}</div><div class="operator"></div>
+		<div class="keyword">if</div> <div class="ident">showKey</div> <div class="operator">{</div>
+			<div class="ident">fmt</div><div class="operator">.</div><div class="ident">Print</div><div class="operator">(</div><div class="ident">key</div><div class="operator">,</div> <div class="literal">&#34;\t&#34;</div><div class="operator">)</div><div class="operator"></div>
+		<div class="operator">}</div><div class="operator"></div>
+		<div class="keyword">if</div> <div class="ident">showClusterID</div> <div class="operator">{</div>
+			<div class="ident">fmt</div><div class="operator">.</div><div class="ident">Print</div><div class="operator">(</div><div class="ident">clusterID</div><div class="operator">,</div> <div class="literal">&#34;\t&#34;</div><div class="operator">)</div><div class="operator"></div>
+		<div class="operator">}</div><div class="operator"></div>
+		<div class="keyword">if</div> <div class="ident">showPath</div> <div class="operator">{</div>
+			<div class="ident">fmt</div><div class="operator">.</div><div class="ident">Print</div><div class="operator">(</div><div class="ident">path</div><div class="operator">,</div> <div class="literal">&#34;\t&#34;</div><div class="operator">)</div><div class="operator"></div>
+		<div class="operator">}</div><div class="operator"></div>
+		<div class="keyword">if</div> <div class="ident">showExternalOrganization</div> <div class="operator">{</div>
+			<div class="ident">fmt</div><div class="operator">.</div><div class="ident">Print</div><div class="operator">(</div><div class="ident">externalOrganization</div><div class="operator">,</div> <div class="literal">&#34;\t&#34;</div><div class="operator">)</div><div class="operator"></div>
+		<div class="operator">}</div><div class="operator"></div>
+		<div class="keyword">if</div> <div class="ident">showReport</div> <div class="operator">{</div>
+			<div class="ident">fmt</div><div class="operator">.</div><div class="ident">Print</div><div class="operator">(</div><div class="ident">report</div><div class="operator">)</div><div class="operator"></div>
+		<div class="operator">}</div><div class="operator"></div>
+		<div class="ident">fmt</div><div class="operator">.</div><div class="ident">Println</div><div class="operator">(</div><div class="operator">)</div><div class="operator"></div>
+	<div class="operator">}</div><div class="operator"></div>
+
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>get any error encountered during iteration</p>
+</td>
+	<td class="code"><pre><code>	<div class="ident">err</div> <div class="operator">=</div> <div class="ident">rows</div><div class="operator">.</div><div class="ident">Err</div><div class="operator">(</div><div class="operator">)</div><div class="operator"></div>
+	<div class="keyword">if</div> <div class="ident">err</div> <div class="operator">!=</div> <div class="ident">nil</div> <div class="operator">{</div>
+		<div class="ident">log</div><div class="operator">.</div><div class="ident">Fatal</div><div class="operator">(</div><div class="literal">&#34;process record(s)&#34;</div><div class="operator">,</div> <div class="ident">err</div><div class="operator">)</div><div class="operator"></div>
+	<div class="operator">}</div><div class="operator"></div>
+<div class="operator">}</div><div class="operator"></div>
+
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>closeStorage function tries to close the connection to storage</p>
+</td>
+	<td class="code"><pre><code><div class="keyword">func</div> <div class="ident">closeStorage</div><div class="operator">(</div><div class="ident">storage</div> <div class="operator">*</div><div class="ident">sql</div><div class="operator">.</div><div class="ident">DB</div><div class="operator">)</div> <div class="operator">{</div>
+	<div class="ident">err</div> <div class="operator">:=</div> <div class="ident">storage</div><div class="operator">.</div><div class="ident">Close</div><div class="operator">(</div><div class="operator">)</div><div class="operator"></div>
+
+	<div class="keyword">if</div> <div class="ident">err</div> <div class="operator">!=</div> <div class="ident">nil</div> <div class="operator">{</div>
+		<div class="ident">log</div><div class="operator">.</div><div class="ident">Fatal</div><div class="operator">(</div><div class="literal">&#34;storage.Close:&#34;</div><div class="operator">,</div> <div class="ident">err</div><div class="operator">)</div><div class="operator"></div>
+	<div class="operator">}</div><div class="operator"></div>
+<div class="operator">}</div><div class="operator"></div>
+
+<div class="keyword">func</div> <div class="ident">main</div><div class="operator">(</div><div class="operator">)</div> <div class="operator">{</div>
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>filled via command line arguments</p>
+</td>
+	<td class="code"><pre><code>	<div class="keyword">var</div> <div class="ident">databaseHost</div> <div class="ident">string</div><div class="operator"></div>
+	<div class="keyword">var</div> <div class="ident">databasePort</div> <div class="ident">int</div><div class="operator"></div>
+	<div class="keyword">var</div> <div class="ident">databaseUser</div> <div class="ident">string</div><div class="operator"></div>
+	<div class="keyword">var</div> <div class="ident">databasePassword</div> <div class="ident">string</div><div class="operator"></div>
+	<div class="keyword">var</div> <div class="ident">databaseName</div> <div class="ident">string</div><div class="operator"></div>
+
+	<div class="keyword">var</div> <div class="ident">showID</div> <div class="ident">bool</div><div class="operator"></div>
+	<div class="keyword">var</div> <div class="ident">showKey</div> <div class="ident">bool</div><div class="operator"></div>
+	<div class="keyword">var</div> <div class="ident">showClusterID</div> <div class="ident">bool</div><div class="operator"></div>
+	<div class="keyword">var</div> <div class="ident">showPath</div> <div class="ident">bool</div><div class="operator"></div>
+	<div class="keyword">var</div> <div class="ident">showExternalOrganization</div> <div class="ident">bool</div><div class="operator"></div>
+	<div class="keyword">var</div> <div class="ident">showReport</div> <div class="ident">bool</div><div class="operator"></div>
+
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>find and parse all command line arguments</p>
+</td>
+	<td class="code"><pre><code>	<div class="ident">flag</div><div class="operator">.</div><div class="ident">StringVar</div><div class="operator">(</div><div class="operator">&amp;</div><div class="ident">databaseHost</div><div class="operator">,</div> <div class="literal">&#34;db-host&#34;</div><div class="operator">,</div> <div class="ident">defaultDatabaseHostname</div><div class="operator">,</div> <div class="literal">&#34;database host name&#34;</div><div class="operator">)</div><div class="operator"></div>
+	<div class="ident">flag</div><div class="operator">.</div><div class="ident">IntVar</div><div class="operator">(</div><div class="operator">&amp;</div><div class="ident">databasePort</div><div class="operator">,</div> <div class="literal">&#34;db-port&#34;</div><div class="operator">,</div> <div class="ident">defaultDatabasePort</div><div class="operator">,</div> <div class="literal">&#34;database port&#34;</div><div class="operator">)</div><div class="operator"></div>
+	<div class="ident">flag</div><div class="operator">.</div><div class="ident">StringVar</div><div class="operator">(</div><div class="operator">&amp;</div><div class="ident">databaseName</div><div class="operator">,</div> <div class="literal">&#34;db-name&#34;</div><div class="operator">,</div> <div class="ident">defaultDatabaseName</div><div class="operator">,</div> <div class="literal">&#34;database name&#34;</div><div class="operator">)</div><div class="operator"></div>
+	<div class="ident">flag</div><div class="operator">.</div><div class="ident">StringVar</div><div class="operator">(</div><div class="operator">&amp;</div><div class="ident">databaseUser</div><div class="operator">,</div> <div class="literal">&#34;db-user&#34;</div><div class="operator">,</div> <div class="ident">defaultDatabaseUser</div><div class="operator">,</div> <div class="literal">&#34;database user&#34;</div><div class="operator">)</div><div class="operator"></div>
+	<div class="ident">flag</div><div class="operator">.</div><div class="ident">StringVar</div><div class="operator">(</div><div class="operator">&amp;</div><div class="ident">databasePassword</div><div class="operator">,</div> <div class="literal">&#34;db-password&#34;</div><div class="operator">,</div> <div class="ident">defaultDatabasePassword</div><div class="operator">,</div> <div class="literal">&#34;database password for given user&#34;</div><div class="operator">)</div><div class="operator"></div>
+
+	<div class="ident">flag</div><div class="operator">.</div><div class="ident">BoolVar</div><div class="operator">(</div><div class="operator">&amp;</div><div class="ident">showID</div><div class="operator">,</div> <div class="literal">&#34;show-id&#34;</div><div class="operator">,</div> <div class="ident">true</div><div class="operator">,</div> <div class="literal">&#34;ID of the record&#34;</div><div class="operator">)</div><div class="operator"></div>
+	<div class="ident">flag</div><div class="operator">.</div><div class="ident">BoolVar</div><div class="operator">(</div><div class="operator">&amp;</div><div class="ident">showKey</div><div class="operator">,</div> <div class="literal">&#34;show-key&#34;</div><div class="operator">,</div> <div class="ident">true</div><div class="operator">,</div> <div class="literal">&#34;Key of the record&#34;</div><div class="operator">)</div><div class="operator"></div>
+	<div class="ident">flag</div><div class="operator">.</div><div class="ident">BoolVar</div><div class="operator">(</div><div class="operator">&amp;</div><div class="ident">showClusterID</div><div class="operator">,</div> <div class="literal">&#34;show-clusterid&#34;</div><div class="operator">,</div> <div class="ident">true</div><div class="operator">,</div> <div class="literal">&#34;ClusterID&#34;</div><div class="operator">)</div><div class="operator"></div>
+	<div class="ident">flag</div><div class="operator">.</div><div class="ident">BoolVar</div><div class="operator">(</div><div class="operator">&amp;</div><div class="ident">showPath</div><div class="operator">,</div> <div class="literal">&#34;show-path&#34;</div><div class="operator">,</div> <div class="ident">true</div><div class="operator">,</div> <div class="literal">&#34;path&#34;</div><div class="operator">)</div><div class="operator"></div>
+	<div class="ident">flag</div><div class="operator">.</div><div class="ident">BoolVar</div><div class="operator">(</div><div class="operator">&amp;</div><div class="ident">showExternalOrganization</div><div class="operator">,</div> <div class="literal">&#34;show-org&#34;</div><div class="operator">,</div> <div class="ident">true</div><div class="operator">,</div> <div class="literal">&#34;external organization&#34;</div><div class="operator">)</div><div class="operator"></div>
+	<div class="ident">flag</div><div class="operator">.</div><div class="ident">BoolVar</div><div class="operator">(</div><div class="operator">&amp;</div><div class="ident">showReport</div><div class="operator">,</div> <div class="literal">&#34;show-report&#34;</div><div class="operator">,</div> <div class="ident">false</div><div class="operator">,</div> <div class="literal">&#34;the whole report&#34;</div><div class="operator">)</div><div class="operator"></div>
+	<div class="ident">flag</div><div class="operator">.</div><div class="ident">Parse</div><div class="operator">(</div><div class="operator">)</div><div class="operator"></div>
+
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>try to initialize the storage</p>
+</td>
+	<td class="code"><pre><code>	<div class="ident">storage</div><div class="operator">,</div> <div class="ident">err</div> <div class="operator">:=</div> <div class="ident">initStorage</div><div class="operator">(</div><div class="ident">databaseHost</div><div class="operator">,</div> <div class="ident">databasePort</div><div class="operator">,</div> <div class="ident">databaseUser</div><div class="operator">,</div> <div class="ident">databasePassword</div><div class="operator">,</div> <div class="ident">databaseName</div><div class="operator">)</div><div class="operator"></div>
+	<div class="keyword">if</div> <div class="ident">err</div> <div class="operator">!=</div> <div class="ident">nil</div> <div class="operator">{</div>
+		<div class="ident">log</div><div class="operator">.</div><div class="ident">Fatal</div><div class="operator">(</div><div class="literal">&#34;Storage init&#34;</div><div class="operator">,</div> <div class="ident">err</div><div class="operator">)</div><div class="operator"></div>
+	<div class="operator">}</div><div class="operator"></div>
+
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>storage needs to be closed properly</p>
+</td>
+	<td class="code"><pre><code>	<div class="ident">closeStorage</div><div class="operator">(</div><div class="ident">storage</div><div class="operator">)</div><div class="operator"></div>
+
+</code></pre></td>
+      </tr>
+      
+      <tr class="section">
+	<td class="doc"><p>read and display all records</p>
+</td>
+	<td class="code"><pre><code>	<div class="ident">readAndDisplayAllRecords</div><div class="operator">(</div><div class="ident">storage</div><div class="operator">,</div> <div class="ident">showID</div><div class="operator">,</div> <div class="ident">showKey</div><div class="operator">,</div> <div class="ident">showClusterID</div><div class="operator">,</div>
+		<div class="ident">showPath</div><div class="operator">,</div> <div class="ident">showExternalOrganization</div><div class="operator">,</div> <div class="ident">showReport</div><div class="operator">)</div><div class="operator"></div>
+<div class="operator">}</div><div class="operator"></div>
+
+</code></pre></td>
+      </tr>
+      
+    </tbody>
+  </table>
+</div>
+</body>
+</html>
